@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from execution.logger import get_logger
 from execution.processar_km import processar_km_payload
+from execution.google_services import append_to_sheet
 
 # Inicializa logger
 logger = get_logger("API_Server")
@@ -17,16 +18,29 @@ def registrar_km():
     if not data:
         return jsonify({"erro": "Nenhum payload recebido"}), 400
         
-    logger.info(f"Recebendo requisição POST no /api/km: {data.get('clientes', 'Desconhecido')}")
-    
     try:
         resultado = processar_km_payload(data)
         logger.info(f"Despesa processada e formatada: {resultado}")
         
-        # FUTURO: Aqui chamaremos Google Sheets Api p/ salvar
+        # Monta a linha da planilha baseado nas colunas: ["Dia", "Cliente Visitado", "KM TOTAL", "R$"]
+        linha = [
+            resultado["Data"], 
+            resultado["Razao Social"], 
+            resultado["KM_TOTAL"], 
+            resultado["Valor"]
+        ]
+        
+        # Puxa o ID do arquivo .env
+        sheet_id = os.getenv("SHEET_ID_KM")
+        
+        # Se for inglês, mude de "Página1" para "Sheet1" aqui ou no .env se preferir
+        if sheet_id:
+            append_to_sheet(sheet_id, "Página1", [linha])
+        else:
+            logger.warning("Google Sheets não acionado pois variável SHEET_ID_KM não está no .env.")
         
         return jsonify({
-            "mensagem": "Cálculo de KM recebido e validado com sucesso!",
+            "mensagem": "Cálculo efetuado e salvo no Google Sheets com sucesso!",
             "dados_sheets": resultado
         }), 200
         
