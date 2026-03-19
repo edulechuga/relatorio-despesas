@@ -1,21 +1,70 @@
-// Lógica do Google Maps Autocomplete
+// Lógica do Google Maps e Autocomplete
+let map, directionsService, directionsRenderer;
 let autocompletePartida, autocompleteDestino;
 
 window.initMap = function() {
     console.log("Maps API Carregada");
     
-    // Tenta inicializar apenas se as caixas de input existirem
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer();
+    
+    // Inicia o mapa (aponta p/ o centro do Brasil genérico, mas pode ser SP)
+    const mapCenter = { lat: -23.5505, lng: -46.6333 }; // São Paulo
+    
+    // O div map onde o mapa será desenhado
+    map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 10,
+        center: mapCenter,
+        disableDefaultUI: true, // Visual mais limpo
+    });
+    
+    directionsRenderer.setMap(map);
+    
+    // Anexa Autocomplete às caixas
     const inputPartida = document.getElementById('endPartida');
     const inputDestino = document.getElementById('endDestino');
     
     if(inputPartida && inputDestino) {
-        // Se a chave for inválida (SUA_CHAVE_AQUI), ele vai dar erro de console, e limitará o UI.
         try {
             autocompletePartida = new google.maps.places.Autocomplete(inputPartida);
             autocompleteDestino = new google.maps.places.Autocomplete(inputDestino);
+            
+            // Recalcula a rota quando o usuário seleciona um novo endereço na caixinha
+            autocompletePartida.addListener('place_changed', calculateAndDisplayRoute);
+            autocompleteDestino.addListener('place_changed', calculateAndDisplayRoute);
         } catch(e) {
-            console.warn("Chave do maps inválida ou script não carregado corretamente ainda.", e);
+            console.warn("Chave do maps inválida ou script não carregado corretamente.", e);
         }
+    }
+}
+
+// Global variable para armazenar a Km real extraída do mapa
+let kmCalculadaOculta = 0;
+
+function calculateAndDisplayRoute() {
+    const origin = document.getElementById('endPartida').value;
+    const destination = document.getElementById('endDestino').value;
+    
+    if (origin && destination) {
+        directionsService.route({
+            origin: origin,
+            destination: destination,
+            travelMode: google.maps.TravelMode.DRIVING
+        })
+        .then((response) => {
+            directionsRenderer.setDirections(response);
+            
+            // Extrai a distância do 1º trajeto (leg) -> valor em metros
+            const distanceText = response.routes[0].legs[0].distance.text;
+            const distanceMeters = response.routes[0].legs[0].distance.value;
+            kmCalculadaOculta = distanceMeters / 1000;
+            
+            console.log(`Distância real da rota: ${kmCalculadaOculta} km (${distanceText})`);
+        })
+        .catch((e) => {
+            console.error("Não foi possível calcular a rota.", e);
+            kmCalculadaOculta = 0;
+        });
     }
 }
 
@@ -71,11 +120,19 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         if (ufMaps) {
+            if (kmCalculadaOculta === 0) {
+                btn.classList.remove('loading');
+                mensagemBox.textContent = "Por favor, aguarde a rota aparecer no mapa antes de enviar.";
+                mensagemBox.className = 'message error';
+                mensagemBox.classList.remove('hidden');
+                return;
+            }
+            // Envia a KM que o Maps calculou na tela, ignorando partida/destino textual no backend
+            payload.km_ida = kmCalculadaOculta; 
+            payload.km_volta = 0;
+            // Mandamos as strings só para registro do backend
             payload.endereco_partida = document.getElementById('endPartida').value;
             payload.endereco_destino = document.getElementById('endDestino').value;
-            // A diretriz pede km_ida obrigatório no backend (mesmo se vazio), mas faremos fallback no python.
-            // Para não quebrar estrito, enviamos 0 se não preenchido.
-            payload.km_ida = 0; 
         } else {
             payload.km_ida = document.getElementById('kmIda').value;
             payload.km_volta = document.getElementById('kmVolta').value || 0;

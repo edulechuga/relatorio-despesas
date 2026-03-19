@@ -16,22 +16,7 @@ def converter_para_float(valor):
     except ValueError:
         return 0.0
 
-def calcular_distancia_maps(origem: str, destino: str) -> float:
-    """
-    Função mock (stub) para integração com a API do Google Maps.
-    Na versão final, insira chave de API + uso do pacote googlemaps.
-    Se não achar rota, levanta exceção para obrigar uso dos campos manuais.
-    """
-    if OrigemVaziaOuIgual(origem, destino):
-         raise ValueError("Endereços inválidos para cálculo.")
-    
-    # Mock para teste - Na realidade isso fará um get() na API do Maps
-    # Ex: return result['routes'][0]['legs'][0]['distance']['value'] / 1000.0
-    logger.info(f"Cálculo: Rota O-D mockada entre '{origem}' e '{destino}' -> 15.0 Km")
-    return 15.0 # MOCK fixo de 15km
-    
-def OrigemVaziaOuIgual(o, d):
-    return (not o or not d) or (o.strip() == d.strip())
+
 
 def processar_km_payload(payload: dict) -> dict:
     """
@@ -55,28 +40,11 @@ def processar_km_payload(payload: dict) -> dict:
         
     km_ida_num = converter_para_float(km_ida_raw)
     km_volta_num = converter_para_float(km_volta_raw)
-    km_total = 0.0
     
-    # Tentativa de uso via endereço se preenchido
-    if endereco_partida and endereco_destino:
-        try:
-            # Pela diretriz, se calcularmos via API, ele substitui os digitados
-            distancia_rota = calcular_distancia_maps(endereco_partida, endereco_destino)
-            # Retorno Mock: assume que o cálculo acha a distância de IDA. Multiplicar por 2 para volta (se aplicável).
-            # Para testes baseados no formulário, consideraremos o valor ida+volta ou ajustamos no front.
-            km_total = distancia_rota
-            logger.debug(f"Cálculo via Google Maps: {endereco_partida} -> {endereco_destino} = {km_total} Km")
-            
-            # Ajuste de UX: O form poderia pedir Checkbox "Considerar viagem de volta?", aqui assumimos que endereco é IDA.
-            # No momento, usa a "distância" crua calculada.
-        except Exception as e:
-            logger.warning(f"Cálculo via Google Maps falhou: {str(e)}. Fallback para cálculo manual.")
-            km_total = km_ida_num + km_volta_num
-        logger.debug(f"Cálculo matemático: ida ({km_ida_num}) + volta ({km_volta_num}) = {km_total}")
-    else:
-        # Cálculo matemático simples
-        km_total = km_ida_num + km_volta_num
-        logger.debug(f"Cálculo matemático: ida ({km_ida_num}) + volta ({km_volta_num}) = {km_total}")
+    # O front-end agora calcula a rota usando Map DirectionsService e passa a distância real em "km_ida_raw"
+    # Assim, o backend só precisa confiar na matemática final de km_ida_num + km_volta_num.
+    km_total = km_ida_num + km_volta_num
+    logger.debug(f"Cálculo matemático: ida ({km_ida_num}) + volta ({km_volta_num}) = {km_total}")
         
     if km_total <= 0:
         logger.error(f"Erro no cálculo KM: KM Total = {km_total}")
