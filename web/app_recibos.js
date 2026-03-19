@@ -1,0 +1,97 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const fileInput = document.getElementById('arquivoRecibo');
+    const previewContainer = document.getElementById('previewContainer');
+    const imagePreview = document.getElementById('imagePreview');
+    const fileNameDisplay = document.getElementById('fileName');
+    const form = document.getElementById('reciboForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const mensagemBox = document.getElementById('mensagem');
+    const uploadTexts = document.getElementById('uploadTexts');
+
+    // Manipula a seleção da imagem/PDF para mostrar na tela (Preview)
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            fileNameDisplay.textContent = file.name;
+            
+            // Só exibe miniatura se for imagem (ignora miniatura se for PDF)
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    imagePreview.src = evt.target.result;
+                    imagePreview.style.display = 'inline-block';
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else if (file.type === 'application/pdf') {
+                imagePreview.style.display = 'none';
+                previewContainer.style.display = 'block';
+                fileNameDisplay.textContent = "📄 Documento PDF Selecionado: " + file.name;
+            } else {
+                imagePreview.style.display = 'none';
+                previewContainer.style.display = 'none';
+            }
+            uploadTexts.style.display = 'none'; // Esconde os Textos bonitos de Upload
+        } else {
+            previewContainer.style.display = 'none';
+            uploadTexts.style.display = 'block';
+        }
+    });
+
+    // Submissão do form para o Back-End em Python
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const tipoDespesa = document.getElementById('tipoDespesa').value;
+        const file = fileInput.files[0];
+        
+        if(!tipoDespesa) {
+            alert('Por favor, selecione onde salvar a despesa.');
+            return;
+        }
+        if(!file) {
+            alert('Por favor, anexe a foto do recibo.');
+            return;
+        }
+
+        // Prepara visual de carregamento
+        submitBtn.classList.add('loading');
+        mensagemBox.className = 'message hidden';
+        
+        const formData = new FormData();
+        formData.append("categoria", tipoDespesa);
+        formData.append("documento", file);
+
+        try {
+            // Enviando direto pro Flask /api/recibo
+            const response = await fetch('http://localhost:5001/api/recibo', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Sucesso!
+                const val = result.dados_extraidos.Valor || "?";
+                const desc = result.dados_extraidos.Descricao || "Recibo";
+                mensagemBox.innerHTML = `✅ <strong>Sucesso!</strong> Analisado e salvo no Drive e Planilha de ${tipoDespesa}!<br>Despesa: ${desc} - R$ ${val}`;
+                mensagemBox.className = 'message success';
+                
+                // Limpa o form
+                form.reset();
+                previewContainer.style.display = 'none';
+                uploadTexts.style.display = 'block';
+            } else {
+                mensagemBox.textContent = `Erro do Servidor: ${result.erro}`;
+                mensagemBox.className = 'message error';
+            }
+        } catch (err) {
+            console.error(err);
+            mensagemBox.textContent = "Falha ao comunicar com o servidor. O App Python está rodando?";
+            mensagemBox.className = 'message error';
+        } finally {
+            submitBtn.classList.remove('loading');
+        }
+    });
+});

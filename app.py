@@ -48,8 +48,79 @@ def registrar_km():
         logger.error(f"Erro de Validação: {str(e)}")
         return jsonify({"erro": str(e)}), 400
     except Exception as e:
-        logger.exception(f"Erro Interno no Servidor: {str(e)}")
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
+        logger.exception("Erro interno do servidor")
+        return jsonify({"erro": str(e)}), 500
+
+from execution.processar_recibos import analisar_recibo_com_gemini
+from execution.google_services import upload_file_to_drive
+from werkzeug.utils import secure_filename
+import time
+
+@app.route('/api/recibo', methods=['POST'])
+def receber_recibo():
+    logger.info("Entrou requisição POST em /api/recibo")
+    
+    if 'documento' not in request.files:
+        return jsonify({"erro": "Nenhum documento enviado"}), 400
+        
+    file = request.files['documento']
+    categoria = request.form.get('categoria', 'NAO_DEFINIDO').upper()
+    
+    if file.filename == '':
+        return jsonify({"erro": "Arquivo vazio"}), 400
+        
+    try:
+        # Lê o arquivo para a memória
+        file_bytes = file.read()
+        mime_type = file.mimetype
+        
+        # Mapeia as variáveis do .env dependendo da Categoria Escolhida
+        folder_env_key = f"DRIVE_FOLDER_{categoria}"
+        sheet_env_key = f"SHEET_ID_{categoria}"
+        
+        folder_id = os.getenv(folder_env_key)
+        sheet_id = os.getenv(sheet_env_key)
+        
+        # 1. Faz Upload pro Drive se o ID da pasta existir
+        link_drive = "Sem Link"
+        if folder_id:
+            # Põe um prefixo de data no arquivo pra não encavalar nome igual
+            segundos = int(time.time())
+            nome_seguro = f"{segundos}_{secure_filename(file.filename)}"
+            link_drive = upload_file_to_drive(file_bytes, nome_seguro, folder_id, mime_type)
+        else:
+            logger.warning(f"Não fiz upload pro Drive pois a variável {folder_env_key} está vazia ou falta no .env")
+
+        # 2. IA Trabalhando na Foto
+        dados_json = analisar_recibo_com_gemini(file_bytes, mime_type)
+        
+        # 3. Empurra pra Planilha (Colunas padrão geradas: Data, Categoria, Razão, Descrição, Itens, Valor, Link da Foto)
+        if sheet_id:
+            linha = [
+                dados_json.get("Data", ""),
+                dados_json.get("Categoria", categoria),
+                dados_json.get("Razao_Social", ""),
+                dados_json.get("Descricao", ""),
+                dados_json.get("Itens", ""),
+                dados_json.get("Valor", ""),
+                link_drive
+            ]
+            append_to_sheet(sheet_id, "Página1", [linha])
+        else:
+            logger.warning(f"Não registrou na Planilha pois a variável {sheet_env_key} está vazia ou falta no .env")
+        
+        return jsonify({
+            "mensagem": "Recibo interpretado mágico de I.A",
+            "dados_extraidos": dados_json,
+            "link_foto": link_drive
+        }), 200
+
+    except ValueError as e:
+        logger.error(f"Erro do Gemini ou Leitura: {e}")
+        return jsonify({"erro": str(e)}), 400
+    except Exception as e:
+        logger.exception("Pane Geral Recibo Server")
+        return jsonify({"erro": str(e)}), 500
 
 if __name__ == '__main__':
     # Apenas para teste local do Flask. Em prod, usar Gunicorn.
