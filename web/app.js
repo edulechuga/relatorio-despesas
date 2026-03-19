@@ -6,21 +6,31 @@ window.initMap = function() {
     console.log("Maps API Carregada");
     
     directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer();
+    // Torna a rota alterável/arrastável
+    directionsRenderer = new google.maps.DirectionsRenderer({
+        draggable: true
+    });
     
-    // Inicia o mapa (aponta p/ o centro do Brasil genérico, mas pode ser SP)
+    // Inicia o mapa
     const mapCenter = { lat: -23.5505, lng: -46.6333 }; // São Paulo
     
-    // O div map onde o mapa será desenhado
     map = new google.maps.Map(document.getElementById("map"), {
         zoom: 10,
         center: mapCenter,
-        disableDefaultUI: true, // Visual mais limpo
+        disableDefaultUI: true, 
     });
     
     directionsRenderer.setMap(map);
     
-    // Anexa Autocomplete às caixas
+    // Escuta evento de rota "arrastada" ou alterada pelo usuário
+    directionsRenderer.addListener('directions_changed', function() {
+        const directions = directionsRenderer.getDirections();
+        if (directions) {
+            atualizarDistanciaPelaRota(directions);
+        }
+    });
+    
+    // Anexa Autocomplete às caixas estáticas
     const inputPartida = document.getElementById('endPartida');
     const inputDestino = document.getElementById('endDestino');
     
@@ -29,43 +39,117 @@ window.initMap = function() {
             autocompletePartida = new google.maps.places.Autocomplete(inputPartida);
             autocompleteDestino = new google.maps.places.Autocomplete(inputDestino);
             
-            // Recalcula a rota quando o usuário seleciona um novo endereço na caixinha
+            // Recalcula a rota
             autocompletePartida.addListener('place_changed', calculateAndDisplayRoute);
             autocompleteDestino.addListener('place_changed', calculateAndDisplayRoute);
+            
+            inputPartida.addEventListener('change', calculateAndDisplayRoute);
+            inputDestino.addEventListener('change', calculateAndDisplayRoute);
         } catch(e) {
-            console.warn("Chave do maps inválida ou script não carregado corretamente.", e);
+            console.warn("Chave do maps inválida ou script não carregado", e);
         }
+    }
+    
+    // Botão Adicionar Parada
+    const btnAddWaypoint = document.getElementById('btnAddWaypoint');
+    if(btnAddWaypoint) {
+        btnAddWaypoint.addEventListener('click', addWaypointInput);
+    }
+    
+    // Checkbox Ida e Volta Maps
+    const idaVoltaMaps = document.getElementById('idaVoltaMaps');
+    if(idaVoltaMaps) {
+        idaVoltaMaps.addEventListener('change', calculateAndDisplayRoute);
     }
 }
 
 // Global variable para armazenar a Km real extraída do mapa
 let kmCalculadaOculta = 0;
+let waypointCount = 0;
+
+function addWaypointInput() {
+    waypointCount++;
+    const container = document.getElementById('waypointsContainer');
+    
+    const div = document.createElement('div');
+    div.className = 'form-group';
+    div.style.marginBottom = '10px';
+    
+    const label = document.createElement('label');
+    label.innerText = `Parada ${waypointCount}`;
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'waypoint-input';
+    input.placeholder = 'Digite um endereço de parada intermediária...';
+    
+    div.appendChild(label);
+    div.appendChild(input);
+    container.appendChild(div);
+    
+    // Ativa o Places no novo input
+    try {
+        const autocomp = new google.maps.places.Autocomplete(input);
+        autocomp.addListener('place_changed', calculateAndDisplayRoute);
+        input.addEventListener('change', calculateAndDisplayRoute);
+    } catch(e) {}
+}
+
+function atualizarDistanciaPelaRota(response) {
+    if(!response || !response.routes || response.routes.length === 0) return;
+    
+    let totalMeters = 0;
+    const route = response.routes[0];
+    
+    for (let i = 0; i < route.legs.length; i++) {
+        totalMeters += route.legs[i].distance.value;
+    }
+    
+    const idaVoltaChecked = document.getElementById('idaVoltaMaps') && document.getElementById('idaVoltaMaps').checked;
+    
+    if(idaVoltaChecked) {
+        totalMeters *= 2; // Dobra a KM
+    }
+    
+    kmCalculadaOculta = totalMeters / 1000;
+    console.log(`Nova Distância roteirizada: ${kmCalculadaOculta} km`);
+}
 
 function calculateAndDisplayRoute() {
     const origin = document.getElementById('endPartida').value;
     const destination = document.getElementById('endDestino').value;
     
-    if (origin && destination) {
-        directionsService.route({
-            origin: origin,
-            destination: destination,
-            travelMode: google.maps.TravelMode.DRIVING
-        })
-        .then((response) => {
-            directionsRenderer.setDirections(response);
-            
-            // Extrai a distância do 1º trajeto (leg) -> valor em metros
-            const distanceText = response.routes[0].legs[0].distance.text;
-            const distanceMeters = response.routes[0].legs[0].distance.value;
-            kmCalculadaOculta = distanceMeters / 1000;
-            
-            console.log(`Distância real da rota: ${kmCalculadaOculta} km (${distanceText})`);
-        })
-        .catch((e) => {
-            console.error("Não foi possível calcular a rota.", e);
-            kmCalculadaOculta = 0;
-        });
-    }
+    if (!origin || !destination) return;
+
+    // Coleta waypoints inseridos dinamicamente
+    const wpInputs = document.querySelectorAll('.waypoint-input');
+    const waypoints = [];
+    wpInputs.forEach(inp => {
+        if(inp.value.trim() !== '') {
+            waypoints.push({
+                location: inp.value,
+                stopover: true
+            });
+        }
+    });
+
+    directionsService.route({
+        origin: origin,
+        destination: destination,
+        waypoints: waypoints,
+        optimizeWaypoints: true,
+        travelMode: google.maps.TravelMode.DRIVING
+    })
+    .then((response) => {
+        directionsRenderer.setDirections(response);
+        // O event directions_changed é disparado pelo setDirections, 
+        // mas as vezes asincrono. Para garantir:
+        atualizarDistanciaPelaRota(response);
+    })
+    .catch((e) => {
+        console.error("Não foi possível calcular a rota.", e);
+        kmCalculadaOculta = 0;
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
