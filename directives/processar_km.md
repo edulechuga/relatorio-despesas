@@ -1,25 +1,27 @@
 # Diretriz: Registro de Quilometragem (KM)
 
 **Objetivo:**
-Processar dados de um formulário de KM rodada (ida e volta), calcular as distâncias totais, calcular o custo no valor atual de ressarcimento por km e injetar no acompanhamento de despesas gerenciais.
+Processar dados de um formulário web com informações de KM (ida e volta) ou com base em endereços de partida e destino. Calcular as distâncias totais, calcular o valor de ressarcimento por km e formatar os dados para inserção no Google Sheets (acompanhamento de despesas gerenciais).
 
 **Entradas:**
-- payload JSON vindo de webhook ou form submission com as informações de quilometragem.
+- payload JSON vindo do frontend (formulário).
 
 **Parâmetros de Entrada Esperados:**
-1. `DATA` (Data da visita/viagem)
-2. `Clientes Visitados` (Descrição do local/cliente)
-3. `KM - IDA` (Número ou string conversível para número da KM ida)
-4. `KM - VOLTA` (Opcional, quilometragem de retorno)
+1. `data` (Data da visita/viagem) - OBRIGATÓRIO
+2. `clientes` (Descrição do local/cliente) - OBRIGATÓRIO
+3. `km_ida` (Número ou string conversível para numérico) - OBRIGATÓRIO
+4. `km_volta` (Número ou string conversível para numérico) - Opcional, padrão = 0.
+5. `endereco_partida` (String literal) - Opcional.
+6. `endereco_destino` (String literal) - Opcional.
 
 **Saída Esperada:**
-Um dicionário Python construído pelas regras abaixo que mapeie diretamente para o arquivo `.csv` correspondente ou preencha a linha do Google Sheets respectivo.
+Um dicionário (objeto JSON formatado no Python) que represente as informações faturadas para injetar no Google Sheets.
 
 ## Regras de Negócio e Cálculo:
 
-1. **KM Total**:
-   A KM_TOTAL é a soma da `KM - IDA` e da `KM - VOLTA`.
-   Se o form não enviar `KM - VOLTA`, use `0`.
+1. **Prioridade de KM Total / Endereço**:
+   Se `endereco_partida` e `endereco_destino` estiverem preenchidos, o sistema deve acionar a API do Google Maps (ou similar) para calcular a distância e usá-la ignorando os campos de KM digitados (ou somando ida e volta usando a distância calculada pela API). 
+   Se os endereços NÃO estiverem informados, utiliza-se a matemática simples: A KM_TOTAL é a soma da `km_ida` declarada e da `km_volta`.
 
 2. **Cálculo de Reembolso**:
    O total em reais é: `TOTAL_RS = KM_TOTAL * 1.95`.
@@ -30,8 +32,9 @@ Um dicionário Python construído pelas regras abaixo que mapeie diretamente par
    * **Descrição**: `"KM"`
    * **Itens**: `"KM"`
 
-4. **Tratamento de Strings / Formulários**:
-   Sempre trate as chaves `KM - IDA` e `KM - VOLTA` convertendo para valores tipo `float` na Camada 3 caso o formulário dispare em representação estrita de string `"100.5"`. O formato de retorno total em reais deve prever até duas casas decimais.
+4. **Tratamento de Tipos de Dados**:
+   Sempre converta os valores recebidos de `km_ida` e `km_volta` para `float`. Certifique-se de que os valores decimais em formato brasileiro (ex. `10,50`) sejam convertidos corretamente (`10.50`) antes da matemática. O valor de resposta `R$` final deve ser formatado com duas casas decimais ou enviado numérico de acordo com a planilha.
 
-## Tratamento de Falhas (Execução Camada 3)
-- Falta da variável `KM - IDA` obrigatória. Lançar erro `ValueError: Faturamento não possível devido à falta de quilometragem de Ida.`
+## Tratamento de Falhas (Camada 3)
+- Retornar ou levantar exceção legível (ex: `"Erro: Data, Cliente ou KM-Ida não foram informados."`) se as credenciais obrigatórias não existirem.
+- Caso o cálculo do Google Maps via endereço não ache a rota, utilize fallback de erro amigável recomendando preencher os campos numéricos.

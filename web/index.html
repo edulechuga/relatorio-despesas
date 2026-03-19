@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Quilometragem</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="glass-container">
+        <div class="header">
+            <h1>Registro de Viagem</h1>
+            <p>Registre sua quilometragem para ressarcimento.</p>
+        </div>
+
+        <form id="kmForm">
+            <!-- Dados Obrigatórios -->
+            <div class="section-title">Dados da Viagem</div>
+            
+            <div class="form-group">
+                <label for="data">Data *</label>
+                <input type="date" id="data" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="clientes">Clientes Visitados *</label>
+                <input type="text" id="clientes" placeholder="Nome da empresa ou local" required>
+            </div>
+
+            <!-- Modo de Cálculo -->
+            <div class="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="modoCalculo">
+                    <span class="slider round"></span>
+                </label>
+                <span class="toggle-label" id="toggleText">Calcular usando endereços (Maps)</span>
+            </div>
+
+            <!-- Campos Manuais (Padrão) -->
+            <div id="camposManuais" class="form-section active">
+                <div class="form-group">
+                    <label for="kmIda">KM Ida *</label>
+                    <input type="number" id="kmIda" step="0.1" placeholder="Ex: 15.5" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="kmVolta">KM Volta (Opcional)</label>
+                    <input type="number" id="kmVolta" step="0.1" placeholder="Ex: 15.5">
+                </div>
+            </div>
+
+            <!-- Campos Endereço (API Google Maps) -->
+            <div id="camposEndereco" class="form-section">
+                <div class="form-group">
+                    <label for="endPartida">Endereço de Partida</label>
+                    <input type="text" id="endPartida" placeholder="Avenida Paulista, 1000 - SP">
+                </div>
+                
+                <div class="form-group">
+                    <label for="endDestino">Endereço de Destino</label>
+                    <input type="text" id="endDestino" placeholder="Rua Augusta, 500 - SP">
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                <span>Registrar Despesa</span>
+                <div class="loader"></div>
+            </button>
+        </form>
+
+        <div id="mensagem" class="message hidden">
+            <!-- Mensagens de sucesso ou erro -->
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
