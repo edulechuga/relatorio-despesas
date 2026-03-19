@@ -24,20 +24,34 @@ def get_sheets_service():
 
 def append_to_sheet(sheet_id: str, range_name: str, values: list):
     """
-    Acrescenta uma ou mais linhas (values) na planilha especificada.
-    :param sheet_id: ID extraído da URL do Google Sheets.
-    :param range_name: O nome da aba (ex: 'Sheet1' ou 'Página1').
-    :param values: Lista de Listas contendo os dados. Ex: [["Dado1", "Dado2"]]
+    Acrescenta uma ou mais linhas (values) na planilha.
+    Se range_name for "Página1", mas a aba tiver outro nome, tentaremos descobrir o nome real da primeira aba.
     """
     try:
         service = get_sheets_service()
+        
+        # Estratégia Inteligente: Pega o nome real da primeira aba no Google Sheets
+        # Isso evita o erro "Unable to parse range" se a aba se chamar "Sheet1", "KM" ou "Planilha1"
+        try:
+            sheet_metadata = service.spreadsheets().get(spreadsheetId=sheet_id).execute()
+            sheets = sheet_metadata.get('sheets', [])
+            if sheets:
+                real_sheet_name = sheets[0].get("properties", {}).get("title", "Página1")
+                # Se o nome real for encontrado, usamos ele (ex: 'KM') no lugar do fixo.
+                range_name = real_sheet_name
+        except Exception as meta_error:
+            logger.warning(f"Não conseguiu ler os metadados da planilha: {str(meta_error)}")
+
         body = {
             'values': values
         }
         
+        # Evita conflitos de aspas no nome da aba se ela tiver espaços
+        safe_range = f"'{range_name}'!A:D"
+        
         result = service.spreadsheets().values().append(
             spreadsheetId=sheet_id,
-            range=range_name,
+            range=safe_range,
             valueInputOption="USER_ENTERED", # IMPORTANTE: USER_ENTERED permite que fórmulas ou R$ entrem certinho
             insertDataOption="INSERT_ROWS",
             body=body
