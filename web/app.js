@@ -1,3 +1,24 @@
+// Lógica do Google Maps Autocomplete
+let autocompletePartida, autocompleteDestino;
+
+window.initMap = function() {
+    console.log("Maps API Carregada");
+    
+    // Tenta inicializar apenas se as caixas de input existirem
+    const inputPartida = document.getElementById('endPartida');
+    const inputDestino = document.getElementById('endDestino');
+    
+    if(inputPartida && inputDestino) {
+        // Se a chave for inválida (SUA_CHAVE_AQUI), ele vai dar erro de console, e limitará o UI.
+        try {
+            autocompletePartida = new google.maps.places.Autocomplete(inputPartida);
+            autocompleteDestino = new google.maps.places.Autocomplete(inputDestino);
+        } catch(e) {
+            console.warn("Chave do maps inválida ou script não carregado corretamente ainda.", e);
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const modoCalculo = document.getElementById('modoCalculo');
     const toggleText = document.getElementById('toggleText');
@@ -62,25 +83,37 @@ document.addEventListener('DOMContentLoaded', () => {
             payload.endereco_destino = "";
         }
 
-        console.log("Payload montado para o Backend (Camada 3):", payload);
+        console.log("Payload montado para o Backend:", payload);
 
-        // Simulando a chamada para o backend em Python (app.py a ser feito posteriormente)
-        setTimeout(() => {
+        // Comunicação REAL com a nossa API Flask/Gunicorn
+        try {
+            const response = await fetch('http://localhost:5000/api/km', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
             btn.classList.remove('loading');
             
-            // Simula resultado
-            mensagemBox.textContent = `Despesa de KM para "${clientes}" processada! (Simulação de Envio)`;
-            mensagemBox.className = 'message success';
-            
-            form.reset();
-            // Reseta toggle
-            if(modoCalculo.checked) modoCalculo.click();
-            
-            setTimeout(() => {
-                mensagemBox.classList.add('hidden');
-            }, 5000);
-            
-        }, 1500);
+            if (response.ok) {
+                mensagemBox.textContent = `Sucesso! Total calculado: R$ ${result.dados_sheets.Valor}`;
+                mensagemBox.className = 'message success';
+                form.reset();
+                if(modoCalculo.checked) modoCalculo.click();
+            } else {
+                mensagemBox.textContent = `Erro: ${result.erro}`;
+                mensagemBox.className = 'message error';
+            }
+        } catch (error) {
+            btn.classList.remove('loading');
+            mensagemBox.textContent = "Falha ao comunicar com o servidor. A API está rodando?";
+            mensagemBox.className = 'message error';
+        }
+        
+        setTimeout(() => {
+            mensagemBox.classList.add('hidden');
+        }, 8000);
         
     });
 });

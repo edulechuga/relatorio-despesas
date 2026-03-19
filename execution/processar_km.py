@@ -1,6 +1,6 @@
-import logging
+from .logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Valor fixo do reembolso por KM estipulado na diretriz
 VALOR_POR_KM = 1.95
@@ -27,7 +27,7 @@ def calcular_distancia_maps(origem: str, destino: str) -> float:
     
     # Mock para teste - Na realidade isso fará um get() na API do Maps
     # Ex: return result['routes'][0]['legs'][0]['distance']['value'] / 1000.0
-    logger.info(f"Fazendo cálculo de rota MOCK entre '{origem}' e '{destino}'...")
+    logger.info(f"Cálculo: Rota O-D mockada entre '{origem}' e '{destino}' -> 15.0 Km")
     return 15.0 # MOCK fixo de 15km
     
 def OrigemVaziaOuIgual(o, d):
@@ -46,10 +46,15 @@ def processar_km_payload(payload: dict) -> dict:
     endereco_partida = payload.get('endereco_partida')
     endereco_destino = payload.get('endereco_destino')
     
+    logger.debug(f"Processando payload de KM recebido: {payload}")
+    
     # Validações dos campos obrigatórios
     if not data or not clientes or km_ida_raw is None:
+        logger.error("Falha na validação: campos obrigatórios ausentes.")
         raise ValueError("Validação Falhou: 'data', 'clientes' e 'km_ida' são OBRIGATÓRIOS.")
         
+    km_ida_num = converter_para_float(km_ida_raw)
+    km_volta_num = converter_para_float(km_volta_raw)
     km_total = 0.0
     
     # Tentativa de uso via endereço se preenchido
@@ -60,20 +65,25 @@ def processar_km_payload(payload: dict) -> dict:
             # Retorno Mock: assume que o cálculo acha a distância de IDA. Multiplicar por 2 para volta (se aplicável).
             # Para testes baseados no formulário, consideraremos o valor ida+volta ou ajustamos no front.
             km_total = distancia_rota
+            logger.debug(f"Cálculo via Google Maps: {endereco_partida} -> {endereco_destino} = {km_total} Km")
             
             # Ajuste de UX: O form poderia pedir Checkbox "Considerar viagem de volta?", aqui assumimos que endereco é IDA.
             # No momento, usa a "distância" crua calculada.
         except Exception as e:
             logger.warning(f"Cálculo via Google Maps falhou: {str(e)}. Fallback para cálculo manual.")
-            km_total = converter_para_float(km_ida_raw) + converter_para_float(km_volta_raw)
+            km_total = km_ida_num + km_volta_num
+        logger.debug(f"Cálculo matemático: ida ({km_ida_num}) + volta ({km_volta_num}) = {km_total}")
     else:
         # Cálculo matemático simples
-        km_total = converter_para_float(km_ida_raw) + converter_para_float(km_volta_raw)
+        km_total = km_ida_num + km_volta_num
+        logger.debug(f"Cálculo matemático: ida ({km_ida_num}) + volta ({km_volta_num}) = {km_total}")
         
     if km_total <= 0:
+        logger.error(f"Erro no cálculo KM: KM Total = {km_total}")
         raise ValueError("A distância total calculada não pode ser zero ou negativa.")
         
     valor_reembolso = round(km_total * VALOR_POR_KM, 2)
+    logger.info(f"Valor consolidado com sucesso. KM_TOTAL= {km_total} -> Valor= R$ {valor_reembolso}")
     
     resultado_gsheets = {
         "Data": data,

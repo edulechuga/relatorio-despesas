@@ -54,12 +54,16 @@
             <div id="camposEndereco" class="form-section">
                 <div class="form-group">
                     <label for="endPartida">Endereço de Partida</label>
-                    <input type="text" id="endPartida" placeholder="Avenida Paulista, 1000 - SP">
+                    <input type="text" id="endPartida" placeholder="Digite para buscar... (Ex: Av. Paulista, 1000)">
                 </div>
                 
                 <div class="form-group">
                     <label for="endDestino">Endereço de Destino</label>
-                    <input type="text" id="endDestino" placeholder="Rua Augusta, 500 - SP">
+                    <input type="text" id="endDestino" placeholder="Digite para buscar... (Ex: Rua Augusta, 500)">
+                </div>
+
+                <div id="map" class="map-container">
+                    Para visualizar a rota, insira a chave da API no arquivo 'index.html'.
                 </div>
             </div>
 
@@ -74,6 +78,8 @@
         </div>
     </div>
 
+    <!-- Troque 'SUA_CHAVE_AQUI' pela sua API KEY do Google Maps (Habilitar: Places API, Maps JS API, Distance Matrix API) -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=SUA_CHAVE_AQUI&libraries=places&callback=initMap"></script>
     <script src="app.js"></script>
 </body>
 </html>
