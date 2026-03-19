@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Comunicação REAL com a nossa API Flask/Gunicorn
         try {
-            const response = await fetch('http://localhost:5000/api/km', {
+            const response = await fetch('http://localhost:5001/api/km', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
