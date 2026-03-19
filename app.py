@@ -94,15 +94,15 @@ def receber_recibo():
         # 2. IA Trabalhando na Foto
         dados_json = analisar_recibo_com_gemini(file_bytes, mime_type)
         
-        # 3. Empurra pra Planilha (Colunas padrão geradas: Data, Categoria, Razão, Descrição, Itens, Valor, Link da Foto)
+        # 3. Empurra pra Planilha respeitando as regras do JSON do processar_recibos.md
         if sheet_id:
             linha = [
-                dados_json.get("Data", ""),
-                dados_json.get("Categoria", categoria),
-                dados_json.get("Razao_Social", ""),
-                dados_json.get("Descricao", ""),
-                dados_json.get("Itens", ""),
-                dados_json.get("Valor", ""),
+                dados_json.get("data", ""),
+                dados_json.get("categoria", categoria),
+                dados_json.get("razao_social", ""),
+                dados_json.get("descricao", ""),
+                dados_json.get("itens_comprados", ""),
+                dados_json.get("valor_total", ""),
                 link_drive
             ]
             append_to_sheet(sheet_id, "Página1", [linha])
