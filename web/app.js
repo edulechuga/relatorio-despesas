@@ -226,9 +226,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log("Payload montado para o Backend:", payload);
 
-        // Comunicação REAL com a nossa API Flask/Gunicorn
         try {
-            const response = await fetch('http://localhost:5001/api/km', {
+            // Enviando o JSON ao servidor backend Python
+            const targetUrl = `http://${window.location.hostname}:5001/api/km`;
+            const response = await fetch(targetUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

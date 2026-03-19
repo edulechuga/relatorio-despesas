@@ -63,8 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append("documento", file);
 
         try {
-            // Enviando direto pro Flask /api/recibo
-            const response = await fetch('http://localhost:5001/api/recibo', {
+            // Enviando o JSON ao servidor backend Python (porta 5001 na mesma máquina Hospedeira!)
+            const targetUrl = `http://${window.location.hostname}:5001/api/km`;
+            const response = await fetch(targetUrl, {
                 method: 'POST',
                 body: formData
             });
