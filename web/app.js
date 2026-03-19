@@ -240,8 +240,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 mensagemBox.textContent = `Sucesso! Total calculado: R$ ${result.dados_sheets.Valor}`;
                 mensagemBox.className = 'message success';
+                
+                // Limpeza total do formulário e do mapa
                 form.reset();
                 if(modoCalculo.checked) modoCalculo.click();
+                
+                // Remove os inputs dinâmicos de parada e zera contador
+                const container = document.getElementById('waypointsContainer');
+                if(container) container.innerHTML = '';
+                waypointCount = 0;
+                kmCalculadaOculta = 0;
+                
+                // Limpa a linha azul da rota no mapa real
+                if(directionsRenderer) {
+                    directionsRenderer.set('directions', null);
+                }
+                
             } else {
                 mensagemBox.textContent = `Erro: ${result.erro}`;
                 mensagemBox.className = 'message error';
