@@ -5,6 +5,10 @@ from execution.logger import get_logger
 from execution.processar_km import processar_km_payload
 from execution.google_services import append_to_sheet
 
+# Cria diretórios necessários
+os.makedirs('_recibos_pendentes', exist_ok=True)
+os.makedirs('relatorios_gerados', exist_ok=True)
+
 # Inicializa logger
 logger = get_logger("API_Server")
 
