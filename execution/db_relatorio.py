@@ -6,6 +6,7 @@ from execution.logger import get_logger
 logger = get_logger("DB_Relatorio")
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dados_pendentes.db')
+TEMP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), '_recibos_pendentes')
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)

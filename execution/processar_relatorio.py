@@ -6,6 +6,7 @@ import openpyxl
 from datetime import datetime
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.utils import ImageReader
 from execution.logger import get_logger
 from execution.db_relatorio import buscar_despesas, limpar_despesas
 
@@ -76,6 +77,24 @@ def gerar_relatorio_excel(tipo, agrupado):
     wb.save(caminho_final)
     return caminho_final, output_filename
 
+def comprimir_imagem(img_path, max_width, max_height, qualidade=80):
+    try:
+        with Image.open(img_path) as img:
+            img = img.convert('RGB')
+            
+            max_pixels = 2500
+            if img.width > max_pixels or img.height > max_pixels:
+                ratio = min(max_pixels / img.width, max_pixels / img.height)
+                img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
+            
+            buffer = io.BytesIO()
+            img.save(buffer, format='JPEG', quality=qualidade, optimize=True)
+            buffer.seek(0)
+            return ImageReader(buffer)
+    except Exception as e:
+        logger.error(f"Erro ao comprimir {img_path}: {e}")
+        return None
+
 def gerar_pdf_anexos(tipo, despesas):
     arquivos = [d['caminho_arquivo'] for d in despesas if d.get('caminho_arquivo') and os.path.exists(d['caminho_arquivo'])]
     if not arquivos:
@@ -85,30 +104,29 @@ def gerar_pdf_anexos(tipo, despesas):
     output_filename = f"Anexos_Despesas_{tipo.upper()}_{timestamp}.pdf"
     caminho_final = os.path.join(OUTPUT_DIR, output_filename)
     
-    # Criar PDF base da imagem
     temp_pdf = os.path.join(OUTPUT_DIR, f"temp_{timestamp}.pdf")
     c = canvas.Canvas(temp_pdf, pagesize=A4)
     width, height = A4
     
-    # Estrutura 4 por página: x, y, size
     posicoes = [
-        (20, height/2 + 20, width/2 - 30, height/2 - 40), # Top Left
-        (width/2 + 10, height/2 + 20, width/2 - 30, height/2 - 40), # Top Right
-        (20, 20, width/2 - 30, height/2 - 40), # Bot Left
-        (width/2 + 10, 20, width/2 - 30, height/2 - 40) # Bot Right
+        (20, height/2 + 20, width/2 - 30, height/2 - 40),
+        (width/2 + 10, height/2 + 20, width/2 - 30, height/2 - 40),
+        (20, 20, width/2 - 30, height/2 - 40),
+        (width/2 + 10, 20, width/2 - 30, height/2 - 40)
     ]
     
     imagens = [f for f in arquivos if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]
     pdfs = [f for f in arquivos if f.lower().endswith('.pdf')]
     
-    # Montar imagens em grupos de 4
     idx = 0
     while idx < len(imagens):
         for pos in range(4):
             if idx < len(imagens):
                 img_path = imagens[idx]
                 try:
-                    c.drawImage(img_path, posicoes[pos][0], posicoes[pos][1], width=posicoes[pos][2], height=posicoes[pos][3], preserveAspectRatio=True, anchor='c')
+                    img_buffer = comprimir_imagem(img_path, posicoes[pos][2], posicoes[pos][3])
+                    if img_buffer:
+                        c.drawImage(img_buffer, posicoes[pos][0], posicoes[pos][1], width=posicoes[pos][2], height=posicoes[pos][3], preserveAspectRatio=True, anchor='c')
                 except Exception as e:
                     logger.error(f"Erro ao inserir imagem {img_path} no PDF: {e}")
                 idx += 1
