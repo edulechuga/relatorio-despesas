@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -8,32 +9,21 @@ from execution.logger import get_logger
 
 logger = get_logger("GoogleServices")
 
-# Carrega variáveis de ambiente (ex: SHEET_ID_KM)
 load_dotenv()
 
-# Combinamos as permissões (Escopos) para que o mesmo robô 
-# escreva na Planilha e guarde a Foto na pasta certa!
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
-CREDENTIALS_FILE = 'credentials.json'
 
 from google.oauth2.credentials import Credentials as OAuthCredentials
 
 def get_google_service(name='sheets', version='v4'):
-    """
-    Função Universal para se logar neles (Drive ou Sheets).
-    Se o usuário gerou o token.json do Gmail/Workspace dele, nós usamos!
-    Se não tiver, tenta a Service Account tradicional.
-    """
     try:
-        # Se existir o token gerado pelo seu log in de usuário real, dá prioridade a ele!
         if os.path.exists('token.json'):
-            logger.info("Usando sua credencial nativa do Drive (token.json)")
+            logger.info("Usando credencial OAuth (token.json)")
             creds = OAuthCredentials.from_authorized_user_file('token.json', SCOPES)
             
-            # Segredo de Ouro: Se a chave envelhecer (dura 1 hora), ele entra aqui, recarrega e salva ela nova no HD
             if creds and creds.expired and creds.refresh_token:
                 from google.auth.transport.requests import Request
                 creds.refresh(Request())
@@ -42,13 +32,21 @@ def get_google_service(name='sheets', version='v4'):
                     
             return build(name, version, credentials=creds)
 
-        if not os.path.exists(CREDENTIALS_FILE):
-            logger.error(f"Arquivo de credenciais não encontrado: {CREDENTIALS_FILE}")
-            raise FileNotFoundError(f"Coloque o arquivo {CREDENTIALS_FILE} na raiz do projeto.")
+        service_account_json = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON')
+        if service_account_json:
+            logger.info("Usando credencial Service Account via variável de ambiente")
+            creds_dict = json.loads(service_account_json)
+            creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+            return build(name, version, credentials=creds)
             
-        creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
-        service = build(name, version, credentials=creds)
-        return service
+        if os.path.exists('credentials.json'):
+            logger.info("Usando credencial Service Account via arquivo")
+            creds = Credentials.from_service_account_file('credentials.json', scopes=SCOPES)
+            return build(name, version, credentials=creds)
+            
+        logger.error("Nenhuma credencial Google encontrada!")
+        raise FileNotFoundError("Configure GOOGLE_SERVICE_ACCOUNT_JSON no .env ou coloque credentials.json na raiz.")
+        
     except Exception as e:
         logger.exception(f"Erro ao inicializar o serviço Google {name} v{version}: {str(e)}")
         raise e
