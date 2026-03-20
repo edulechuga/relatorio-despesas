@@ -32,6 +32,14 @@ def get_google_service(name='sheets', version='v4'):
         if os.path.exists('token.json'):
             logger.info("Usando sua credencial nativa do Drive (token.json)")
             creds = OAuthCredentials.from_authorized_user_file('token.json', SCOPES)
+            
+            # Segredo de Ouro: Se a chave envelhecer (dura 1 hora), ele entra aqui, recarrega e salva ela nova no HD
+            if creds and creds.expired and creds.refresh_token:
+                from google.auth.transport.requests import Request
+                creds.refresh(Request())
+                with open('token.json', 'w') as token:
+                    token.write(creds.to_json())
+                    
             return build(name, version, credentials=creds)
 
         if not os.path.exists(CREDENTIALS_FILE):
