@@ -34,10 +34,11 @@ def registrar_km():
             resultado["Valor"]
         ]
         
-        # Inserção Local no SQLite
+        # Inserção Local no SQLite para o Relatório Mensal
         from execution.db_relatorio import inserir_despesa
-        # Como o App não manda Categoria para o KM, vamos considerar default como PESSOAL para ir para o relatório
-        inserir_despesa(origem="KM", tipo="PESSOAL", data=resultado["Data"], categoria=resultado["Categoria"], descricao=resultado["Descricao"], valor=resultado["Valor"])
+        inserir_despesa(origem="KM", tipo="PESSOAL", data=resultado["Data"], 
+            categoria="Transporte", descricao=f"KM - {resultado['Razao Social']}", 
+            valor=resultado["Valor"])
         
         
         # Puxa o ID do arquivo .env
