@@ -4,3 +4,8 @@ flask-cors==4.0.0
 openpyxl
 pillow
 reportlab
+python-dotenv
+google-auth-oauthlib
+google-auth
+google-api-python-client
+PyPDF2
