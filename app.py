@@ -50,6 +50,20 @@ def registrar_km():
         else:
             logger.warning("Google Sheets não acionado pois variável SHEET_ID_KM não está no .env.")
         
+        # Salvar também na planilha Despesas Pessoal
+        sheet_id_pessoal = os.getenv("SHEET_ID_PESSOAL")
+        if sheet_id_pessoal:
+            linha_pessoal = [
+                data.get('data'),  # DATA
+                "Transporte",  # CATEGORIA
+                "KM",  # DESCRIÇÃO
+                resultado["Valor"],  # VALOR
+                "KM - " + data.get('clientes')  # ITENS
+            ]
+            append_to_sheet(sheet_id_pessoal, "Página1", [linha_pessoal])
+        else:
+            logger.warning("Planilha Pessoal não acionada pois SHEET_ID_PESSOAL não está no .env.")
+        
         return jsonify({
             "mensagem": "Cálculo efetuado e salvo no Google Sheets com sucesso!",
             "dados_sheets": resultado
