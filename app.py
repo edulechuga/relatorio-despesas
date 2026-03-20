@@ -179,6 +179,26 @@ def baixar_arquivo(filename):
     from execution.processar_relatorio import OUTPUT_DIR
     return send_from_directory(OUTPUT_DIR, filename, as_attachment=True)
 
+@app.route('/')
+def index():
+    return send_from_directory('web', 'index.html')
+
+@app.route('/index.html')
+def index_html():
+    return send_from_directory('web', 'index.html')
+
+@app.route('/recibos.html')
+def recibos():
+    return send_from_directory('web', 'recibos.html')
+
+@app.route('/relatorio.html')
+def relatorio():
+    return send_from_directory('web', 'relatorio.html')
+
+@app.route('/<path:filename>')
+def static_files(filename):
+    return send_from_directory('web', filename)
+
 if __name__ == '__main__':
     # Apenas para teste local do Flask. Em prod, usar Gunicorn.
     app.run(host='0.0.0.0', port=5001, debug=True)
