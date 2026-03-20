@@ -19,7 +19,7 @@ def analisar_recibo_com_gemini(conteudo_bytes, mime_type):
     inicializar_genai()
     
     # Usando o modelo gratuito flash atualizado da API do Google!
-    model = genai.GenerativeModel('gemini-2.0-flash')
+    model = genai.GenerativeModel('gemini-2.5-flash')
     
     # Lê as Suas Regras do Arquivo Oficial em tempo real!
     # Assim você pode mudar a Diretriz no arquivo MD sem precisar mexer em código
