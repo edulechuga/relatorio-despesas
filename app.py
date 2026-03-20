@@ -30,6 +30,12 @@ def registrar_km():
             resultado["Valor"]
         ]
         
+        # Inserção Local no SQLite
+        from execution.db_relatorio import inserir_despesa
+        # Como o App não manda Categoria para o KM, vamos considerar default como PESSOAL para ir para o relatório
+        inserir_despesa(origem="KM", tipo="PESSOAL", data=resultado["Data"], categoria=resultado["Categoria"], descricao=resultado["Descricao"], valor=resultado["Valor"])
+        
+        
         # Puxa o ID do arquivo .env
         sheet_id = os.getenv("SHEET_ID_KM")
         
@@ -81,18 +87,30 @@ def receber_recibo():
         folder_id = os.getenv(folder_env_key)
         sheet_id = os.getenv(sheet_env_key)
         
+        from execution.db_relatorio import inserir_despesa, TEMP_DIR
+        import uuid
+        
         # 1. Faz Upload pro Drive se o ID da pasta existir
         link_drive = "Sem Link"
+        caminho_local_recibo = None
+        
         if folder_id:
-            # Põe um prefixo de data no arquivo pra não encavalar nome igual
             segundos = int(time.time())
             nome_seguro = f"{segundos}_{secure_filename(file.filename)}"
             link_drive = upload_file_to_drive(file_bytes, nome_seguro, folder_id, mime_type)
+            
+            # Salva arquivo local Oculto para futura montagem do Fechamento do Mês
+            caminho_local_recibo = os.path.join(TEMP_DIR, nome_seguro)
+            with open(caminho_local_recibo, 'wb') as flocal:
+                flocal.write(file_bytes)
         else:
             logger.warning(f"Não fiz upload pro Drive pois a variável {folder_env_key} está vazia ou falta no .env")
 
         # 2. IA Trabalhando na Foto
         dados_json = analisar_recibo_com_gemini(file_bytes, mime_type)
+        
+        # Inserção Local no SQLite
+        inserir_despesa(origem="RECIBO", tipo=categoria, data=dados_json.get("data", ""), categoria=dados_json.get("categoria", ""), descricao=dados_json.get("descricao", ""), valor=dados_json.get("valor_total", 0), caminho_arquivo=caminho_local_recibo)
         
         # 3. Empurra pra Planilha respeitando as regras do JSON do processar_recibos.md
         if sheet_id:
@@ -122,6 +140,44 @@ def receber_recibo():
     except Exception as e:
         logger.exception("Pane Geral Recibo Server")
         return jsonify({"erro": str(e)}), 500
+
+from flask import send_from_directory
+
+@app.route('/api/relatorio/pendentes', methods=['GET'])
+def get_pendentes():
+    from execution.db_relatorio import buscar_despesas
+    tipo = request.args.get('tipo', 'PESSOAL').upper()
+    try:
+        dados = buscar_despesas(tipo)
+        return jsonify({"dados": dados}), 200
+    except Exception as e:
+        logger.exception("Erro ao buscar pendentes")
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/api/relatorio/gerar', methods=['POST'])
+def gerar_relatorio_fechamento():
+    from execution.processar_relatorio import consolidar_geracao
+    data = request.get_json()
+    tipo = data.get('tipo', 'PESSOAL').upper()
+    
+    try:
+        caminho_excel, caminho_pdf = consolidar_geracao(tipo)
+        if not caminho_excel:
+            return jsonify({"erro": "Nenhum dado pendente para gerar!"}), 400
+            
+        return jsonify({
+            "mensagem": "Sucesso",
+            "excel_url": f"/api/download/{os.path.basename(caminho_excel)}",
+            "pdf_url": f"/api/download/{os.path.basename(caminho_pdf)}" if caminho_pdf else None
+        }), 200
+    except Exception as e:
+        logger.exception("Erro ao fechar relatorio")
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/api/download/<filename>', methods=['GET'])
+def baixar_arquivo(filename):
+    from execution.processar_relatorio import OUTPUT_DIR
+    return send_from_directory(OUTPUT_DIR, filename, as_attachment=True)
 
 if __name__ == '__main__':
     # Apenas para teste local do Flask. Em prod, usar Gunicorn.
