@@ -99,10 +99,11 @@ def receber_recibo():
             linha = [
                 dados_json.get("data", ""),
                 dados_json.get("categoria", categoria),
-                dados_json.get("razao_social", ""),
                 dados_json.get("descricao", ""),
-                dados_json.get("itens_comprados", ""),
                 dados_json.get("valor_total", ""),
+                dados_json.get("itens_comprados", ""),
+                dados_json.get("razao_social", ""),
+                dados_json.get("local", ""),
                 link_drive
             ]
             append_to_sheet(sheet_id, "Página1", [linha])
