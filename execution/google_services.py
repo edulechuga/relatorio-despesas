@@ -19,12 +19,21 @@ SCOPES = [
 ]
 CREDENTIALS_FILE = 'credentials.json'
 
+from google.oauth2.credentials import Credentials as OAuthCredentials
+
 def get_google_service(name='sheets', version='v4'):
     """
     Função Universal para se logar neles (Drive ou Sheets).
-    A autenticação usa sempre a mesma chave credencial.json
+    Se o usuário gerou o token.json do Gmail/Workspace dele, nós usamos!
+    Se não tiver, tenta a Service Account tradicional.
     """
     try:
+        # Se existir o token gerado pelo seu log in de usuário real, dá prioridade a ele!
+        if os.path.exists('token.json'):
+            logger.info("Usando sua credencial nativa do Drive (token.json)")
+            creds = OAuthCredentials.from_authorized_user_file('token.json', SCOPES)
+            return build(name, version, credentials=creds)
+
         if not os.path.exists(CREDENTIALS_FILE):
             logger.error(f"Arquivo de credenciais não encontrado: {CREDENTIALS_FILE}")
             raise FileNotFoundError(f"Coloque o arquivo {CREDENTIALS_FILE} na raiz do projeto.")
