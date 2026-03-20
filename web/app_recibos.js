@@ -63,8 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append("documento", file);
 
         try {
-            // Enviando o JSON ao servidor backend Python (porta 5001 na mesma máquina Hospedeira!)
-            const targetUrl = `http://${window.location.hostname}:5001/api/km`;
+            // Enviando a Imagem ao servidor backend Python (porta 5001)
+            const targetUrl = `http://${window.location.hostname}:5001/api/recibo`;
             const response = await fetch(targetUrl, {
                 method: 'POST',
                 body: formData
@@ -74,9 +74,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 // Sucesso!
-                const val = result.dados_extraidos.Valor || "?";
-                const desc = result.dados_extraidos.Descricao || "Recibo";
-                mensagemBox.innerHTML = `✅ <strong>Sucesso!</strong> Analisado e salvo no Drive e Planilha de ${tipoDespesa}!<br>Despesa: ${desc} - R$ ${val}`;
+                const val = result.dados_extraidos.valor_total || result.dados_extraidos.Valor || "?";
+                const desc = result.dados_extraidos.descricao || result.dados_extraidos.Descricao || "Recibo";
+                
+                // Exibe imagem com link pro Drive
+                let driveHtml = "";
+                if(result.link_foto && result.link_foto !== "Sem Link") {
+                    driveHtml = `<br><a href="${result.link_foto}" target="_blank" style="color: white; text-decoration: underline;">Abrir comprovante salvo no Drive</a>`;
+                }
+                
+                mensagemBox.innerHTML = `✅ <strong>Sucesso!</strong> Analisado e salvo no Drive e Planilha de ${tipoDespesa}!<br>Despesa: ${desc} - R$ ${val}${driveHtml}`;
                 mensagemBox.className = 'message success';
                 
                 // Limpa o form
