@@ -2,5 +2,9 @@
 .tmp/
 credentials.json
 token.json
+oauth_secrets.json
 __pycache__/
 *.pyc
+dados_pendentes.db
+relatorios_gerados/
+_recibos_pendentes/
