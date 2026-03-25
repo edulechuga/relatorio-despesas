@@ -1,25 +1,21 @@
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import os
 import json
 from execution.logger import get_logger
 
 logger = get_logger("IA_Recibos")
 
-def inicializar_genai():
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("Chave da API do Gemini não configurada no .env")
-    genai.configure(api_key=api_key)
-
 def analisar_recibo_com_gemini(conteudo_bytes, mime_type):
     """
     Envia a foto/pdf do recibo para a IA ler 
     e extrair um JSON super limpo com os dados.
     """
-    inicializar_genai()
-    
-    # Usando o modelo gratuito flash atualizado da API do Google!
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("Chave da API do Gemini não configurada no .env")
+        
+    client = genai.Client(api_key=api_key)
     
     # Lê as Suas Regras do Arquivo Oficial em tempo real!
     # Assim você pode mudar a Diretriz no arquivo MD sem precisar mexer em código
@@ -32,14 +28,13 @@ def analisar_recibo_com_gemini(conteudo_bytes, mime_type):
     logger.info("Enviando imagem + Diretriz Oficial (MD) para o Gemini 2.0 Flash...")
     
     try:
-        # A API mais nova do Gemini suporta blobs literais inline!
-        response = model.generate_content([
-            prompt,
-            {
-                "mime_type": mime_type,
-                "data": conteudo_bytes
-            }
-        ])
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[
+                prompt,
+                types.Part.from_bytes(data=conteudo_bytes, mime_type=mime_type)
+            ]
+        )
         
         texto_sujo = response.text.strip()
         logger.debug(f"Retorno bruto AI: {texto_sujo}")
