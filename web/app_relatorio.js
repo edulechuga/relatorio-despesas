@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     carregarDashboard();
 });
 
-const targetApi = `http://${window.location.hostname}:5001/api/relatorio`;
+const targetApi = `/api/relatorio`;
 
 async function carregarDashboard() {
     const categorias = ['PESSOAL', 'CAJU', 'VIAGEM'];
@@ -51,7 +51,7 @@ async function gerarRelatorio(tipo) {
             msgDiv.className = 'message success';
             
             // Link Excel
-            const baseHost = `http://${window.location.hostname}:5001`;
+            const baseHost = ``;
             document.getElementById('link-excel').href = baseHost + result.excel_url;
             document.getElementById('link-excel').download = '';
             

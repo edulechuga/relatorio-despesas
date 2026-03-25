@@ -63,8 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append("documento", file);
 
         try {
-            // Enviando a Imagem ao servidor backend Python (porta 5001)
-            const targetUrl = `http://${window.location.hostname}:5001/api/recibo`;
+            // Enviando a Imagem ao servidor backend Python
+            const targetUrl = `/api/recibo`;
             const response = await fetch(targetUrl, {
                 method: 'POST',
                 body: formData
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (err) {
             console.error(err);
-            mensagemBox.textContent = "Falha ao comunicar com o servidor. O App Python está rodando?";
+            mensagemBox.textContent = `Falha ao comunicar com o servidor: ${err.message}. A porta 5001 está aberta no LXC? O proxy bloqueou o tamanho?`;
             mensagemBox.className = 'message error';
         } finally {
             submitBtn.classList.remove('loading');
