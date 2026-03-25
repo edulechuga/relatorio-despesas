@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // Enviando o JSON ao servidor backend Python
-            const targetUrl = `http://${window.location.hostname}:5001/api/km`;
+            const targetUrl = `/api/km`;
             const response = await fetch(targetUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -242,20 +242,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 mensagemBox.textContent = `Sucesso! Total calculado: R$ ${result.dados_sheets.Valor}`;
                 mensagemBox.className = 'message success';
                 
-                // Limpeza total do formulário e do mapa
-                form.reset();
-                if(modoCalculo.checked) modoCalculo.click();
-                
-                // Remove os inputs dinâmicos de parada e zera contador
-                const container = document.getElementById('waypointsContainer');
-                if(container) container.innerHTML = '';
-                waypointCount = 0;
-                kmCalculadaOculta = 0;
-                
-                // Limpa a linha azul da rota no mapa real
-                if(directionsRenderer) {
-                    directionsRenderer.set('directions', null);
-                }
+                // Recarrega a página completamente após 2 segundos para limpar a memória do Maps
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
                 
             } else {
                 mensagemBox.textContent = `Erro: ${result.erro}`;

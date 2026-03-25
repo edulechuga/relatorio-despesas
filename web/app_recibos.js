@@ -90,6 +90,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 form.reset();
                 previewContainer.style.display = 'none';
                 uploadTexts.style.display = 'block';
+                
+                // Repõe o tipo selecionado antes do reset
+                const savedTipo = localStorage.getItem('lastTipoDespesa') || tipoDespesa;
+                document.getElementById('tipoDespesa').value = savedTipo;
+                const r = document.querySelector(`input[name="tipoDespesaGroup"][value="${savedTipo}"]`);
+                if(r) r.checked = true;
             } else {
                 mensagemBox.textContent = `Erro do Servidor: ${result.erro}`;
                 mensagemBox.className = 'message error';

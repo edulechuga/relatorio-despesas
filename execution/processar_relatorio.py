@@ -24,7 +24,13 @@ if not os.path.exists(OUTPUT_DIR):
 def agrupar_despesas(despesas):
     agrupado = {}
     for d in despesas:
-        chave = (d['categoria'], d['descricao'])
+        is_km = d.get('origem') == 'KM' or str(d.get('descricao', '')).startswith('KM')
+        
+        if is_km:
+            chave = ("Transporte", "KM")
+        else:
+            chave = (d['categoria'], d['descricao'])
+            
         if chave not in agrupado:
             agrupado[chave] = 0.0
         agrupado[chave] += float(d['valor'])
@@ -68,8 +74,8 @@ def gerar_relatorio_excel(tipo, agrupado):
         ws.cell(row=linha_atual, column=12).value = round(soma_valor, 2)
         linha_atual += 1
 
-    # Assinatura Colaborador - Data (Row 44, Col 3)
-    ws.cell(row=44, column=3).value = data_hoje
+    # Assinatura Colaborador - Data (Row 44, Col 4)
+    ws.cell(row=44, column=4).value = data_hoje
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_filename = f"Relatorio_Despesas_{tipo.upper()}_{timestamp}.xlsx"
@@ -77,20 +83,27 @@ def gerar_relatorio_excel(tipo, agrupado):
     wb.save(caminho_final)
     return caminho_final, output_filename
 
-def comprimir_imagem(img_path, max_width, max_height, qualidade=80):
+def comprimir_imagem_temporaria(img_path, qualidade=80):
     try:
+        # Usa um arquivo temporário no disco p/ o reportlab ler sem crashar (evita BytesIO)
+        temp_img_path = img_path + "_comp.jpg"
         with Image.open(img_path) as img:
             img = img.convert('RGB')
-            
+            # Limite máximo seguro
             max_pixels = 2500
             if img.width > max_pixels or img.height > max_pixels:
-                ratio = min(max_pixels / img.width, max_pixels / img.height)
-                img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
+                ratio = min(max_pixels / float(img.width), max_pixels / float(img.height))
+                new_w = int(img.width * ratio)
+                new_h = int(img.height * ratio)
+                # Resampling compatível com versões novas do Pillow (>10.0)
+                try:
+                    resample_filter = Image.Resampling.LANCZOS
+                except AttributeError:
+                    resample_filter = Image.LANCZOS
+                img = img.resize((new_w, new_h), resample_filter)
             
-            buffer = io.BytesIO()
-            img.save(buffer, format='JPEG', quality=qualidade, optimize=True)
-            buffer.seek(0)
-            return ImageReader(buffer)
+            img.save(temp_img_path, format='JPEG', quality=qualidade, optimize=True)
+            return temp_img_path
     except Exception as e:
         logger.error(f"Erro ao comprimir {img_path}: {e}")
         return None
@@ -108,25 +121,29 @@ def gerar_pdf_anexos(tipo, despesas):
     c = canvas.Canvas(temp_pdf, pagesize=A4)
     width, height = A4
     
+    # As posições e os tamanhos devem ser ints para a nova API do ReportLab e para calcular corretamente
     posicoes = [
-        (20, height/2 + 20, width/2 - 30, height/2 - 40),
-        (width/2 + 10, height/2 + 20, width/2 - 30, height/2 - 40),
-        (20, 20, width/2 - 30, height/2 - 40),
-        (width/2 + 10, 20, width/2 - 30, height/2 - 40)
+        (20, int(height/2 + 20), int(width/2 - 30), int(height/2 - 40)),
+        (int(width/2 + 10), int(height/2 + 20), int(width/2 - 30), int(height/2 - 40)),
+        (20, 20, int(width/2 - 30), int(height/2 - 40)),
+        (int(width/2 + 10), 20, int(width/2 - 30), int(height/2 - 40))
     ]
     
     imagens = [f for f in arquivos if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]
     pdfs = [f for f in arquivos if f.lower().endswith('.pdf')]
     
     idx = 0
+    temp_images_created = []
+    
     while idx < len(imagens):
         for pos in range(4):
             if idx < len(imagens):
                 img_path = imagens[idx]
                 try:
-                    img_buffer = comprimir_imagem(img_path, posicoes[pos][2], posicoes[pos][3])
-                    if img_buffer:
-                        c.drawImage(img_buffer, posicoes[pos][0], posicoes[pos][1], width=posicoes[pos][2], height=posicoes[pos][3], preserveAspectRatio=True, anchor='c')
+                    img_temp = comprimir_imagem_temporaria(img_path)
+                    if img_temp:
+                        temp_images_created.append(img_temp)
+                        c.drawImage(img_temp, posicoes[pos][0], posicoes[pos][1], width=posicoes[pos][2], height=posicoes[pos][3], preserveAspectRatio=True, anchor='c')
                 except Exception as e:
                     logger.error(f"Erro ao inserir imagem {img_path} no PDF: {e}")
                 idx += 1
@@ -153,6 +170,20 @@ def gerar_pdf_anexos(tipo, despesas):
         
     return caminho_final, output_filename
 
+def limpar_relatorios_antigos(dias=7):
+    import time
+    try:
+        agora = time.time()
+        for arq in os.listdir(OUTPUT_DIR):
+            caminho_arq = os.path.join(OUTPUT_DIR, arq)
+            if os.path.isfile(caminho_arq):
+                idade_dias = (agora - os.path.getmtime(caminho_arq)) / (24 * 3600)
+                if idade_dias > dias:
+                    os.remove(caminho_arq)
+                    logger.info(f"Relatório antigo removido (> {dias} dias): {arq}")
+    except Exception as e:
+        logger.error(f"Erro ao limpar relatórios antigos: {e}")
+
 def consolidar_geracao(tipo):
     despesas = buscar_despesas(tipo)
     if not despesas:
@@ -177,5 +208,8 @@ def consolidar_geracao(tipo):
                 pass
     # Zera DB
     limpar_despesas(tipo)
+    
+    # Executa a limpeza da pasta de relatórios retendo apenas os últimos 7 dias
+    limpar_relatorios_antigos(7)
     
     return caminho_excel, caminho_pdf

@@ -2,17 +2,18 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Registro de Quilometragem</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="glass-container">
+        <!-- Navegação -->
         <div class="nav-tabs">
-            <a href="index.html" class="active">📍 Quilometragem</a>
-            <a href="recibos.html">🧾 Recibos Inteligentes</a>
-            <a href="relatorio.html">📊 Fechamento do Mês</a>
+            <a href="index.html" class="active"><i data-lucide="map-pin"></i> Viagem</a>
+            <a href="recibos.html"><i data-lucide="receipt"></i> Inteligente</a>
+            <a href="relatorio.html"><i data-lucide="bar-chart-3"></i> Fechamento</a>
         </div>
 
         <div class="header">
@@ -22,36 +23,36 @@
 
         <form id="kmForm">
             <!-- Dados Obrigatórios -->
-            <div class="section-title">Dados da Viagem</div>
+            <div class="section-title">Dados Básicos</div>
             
             <div class="form-group">
-                <label for="data">Data *</label>
+                <label for="data">Data do Trajeto</label>
                 <input type="date" id="data" required>
             </div>
             
             <div class="form-group">
-                <label for="clientes">Clientes Visitados *</label>
-                <input type="text" id="clientes" placeholder="Nome da empresa ou local" required>
+                <label for="clientes">Clientes Visitados</label>
+                <input type="text" id="clientes" placeholder="Ex: Av. Paulista ou Locadora X" required>
             </div>
 
             <!-- Modo de Cálculo -->
             <div class="toggle-container">
                 <label class="toggle-switch">
                     <input type="checkbox" id="modoCalculo">
-                    <span class="slider round"></span>
+                    <span class="slider"></span>
                 </label>
-                <span class="toggle-label" id="toggleText">Calcular usando endereços (Maps)</span>
+                <span class="toggle-label" id="toggleText">Usar rotas do Google Maps</span>
             </div>
 
             <!-- Campos Manuais (Padrão) -->
             <div id="camposManuais" class="form-section active">
                 <div class="form-group">
-                    <label for="kmIda">KM Ida *</label>
+                    <label for="kmIda">KM de Ida</label>
                     <input type="number" id="kmIda" step="0.1" placeholder="Ex: 15.5" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="kmVolta">KM Volta (Opcional)</label>
+                    <label for="kmVolta">KM de Volta (Opcional)</label>
                     <input type="number" id="kmVolta" step="0.1" placeholder="Ex: 15.5">
                 </div>
             </div>
@@ -59,46 +60,47 @@
             <!-- Campos Endereço (API Google Maps) -->
             <div id="camposEndereco" class="form-section">
                 <div class="form-group">
-                    <label for="endPartida">Endereço de Partida</label>
-                    <input type="text" id="endPartida" placeholder="Digite para buscar... (Ex: Av. Paulista, 1000)">
+                    <label for="endPartida">Partida</label>
+                    <input type="text" id="endPartida" placeholder="Av. Paulista, 1000 - SP">
                 </div>
                 
                 <div id="waypointsContainer"></div>
 
                 <div style="margin-bottom: 20px; text-align: left;">
-                    <button type="button" id="btnAddWaypoint" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 5px; color: #fff; cursor: pointer; font-size: 13px;">
-                        + Adicionar Parada
+                    <button type="button" id="btnAddWaypoint" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); padding: 8px 12px; border-radius: 8px; color: var(--text-muted); cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Nova Parada
                     </button>
                 </div>
 
                 <div class="form-group">
-                    <label for="endDestino">Endereço de Destino (Última Parada)</label>
-                    <input type="text" id="endDestino" placeholder="Digite para buscar... (Ex: Rua Augusta, 500)">
+                    <label for="endDestino">Destino Final</label>
+                    <input type="text" id="endDestino" placeholder="Rua Augusta, 500 - SP">
                 </div>
 
-                <div class="form-group" style="display: flex; align-items: center; justify-content: flex-start; gap: 10px; margin-top: 10px;">
-                    <input type="checkbox" id="idaVoltaMaps" style="width: auto; height: auto;">
-                    <label for="idaVoltaMaps" style="margin-bottom: 0; font-size: 14px; cursor: pointer;">Considerar também a Volta para a Partida (+ Ida e Volta)</label>
+                <div class="form-group" style="display: flex; align-items: center; gap: 12px; margin-top: 16px;">
+                    <input type="checkbox" id="idaVoltaMaps" style="width: 18px; height: 18px;">
+                    <label for="idaVoltaMaps" style="margin: 0; cursor: pointer;">Somar retorno ao ponto de partida</label>
                 </div>
 
                 <div id="map" class="map-container">
-                    Para visualizar a rota, insira a chave da API no arquivo 'index.html'.
+                    Rota do Google Maps será desenhada aqui
                 </div>
             </div>
 
             <button type="submit" class="submit-btn" id="submitBtn">
-                <span>Registrar Despesa</span>
+                <span>Registrar KM Executado</span>
                 <div class="loader"></div>
             </button>
         </form>
 
-        <div id="mensagem" class="message hidden">
-            <!-- Mensagens de sucesso ou erro -->
-        </div>
+        <div id="mensagem" class="message hidden"></div>
     </div>
 
     <!-- API KEY do Google Maps configurada -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC6IjX8NApVebNVKTWLEcLeGpUgAhE5I2w&libraries=places&callback=initMap"></script>
     <script src="app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>
