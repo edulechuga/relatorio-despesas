@@ -84,40 +84,76 @@ import time
 @app.route('/api/recibo', methods=['POST'])
 def receber_recibo():
     logger.info("Entrou requisição POST em /api/recibo")
-    
+
     if 'documento' not in request.files:
         return jsonify({"erro": "Nenhum documento enviado"}), 400
-        
+
     file = request.files['documento']
     categoria = request.form.get('categoria', 'NAO_DEFINIDO').upper()
-    
+
+    # Check if this is just for extraction (preview mode)
+    extrair_apenas = request.args.get('extrair_apenas', 'false').lower() == 'true'
+    # Check if this is a confirmation with reviewed data
+    confirmar = request.form.get('confirmar', 'false').lower() == 'true'
+
     if file.filename == '':
         return jsonify({"erro": "Arquivo vazio"}), 400
-        
+
     try:
         # Lê o arquivo para a memória
         file_bytes = file.read()
         mime_type = file.mimetype
-        
+
         # Mapeia as variáveis do .env dependendo da Categoria Escolhida
         folder_env_key = f"DRIVE_FOLDER_{categoria}"
         sheet_env_key = f"SHEET_ID_{categoria}"
-        
+
         folder_id = os.getenv(folder_env_key)
         sheet_id = os.getenv(sheet_env_key)
-        
+
         from execution.db_relatorio import inserir_despesa, TEMP_DIR
         import uuid
-        
+
+        # If just extracting data for preview, don't save anything
+        if extrair_apenas and not confirmar:
+            dados_json = analisar_recibo_com_gemini(file_bytes, mime_type)
+            return jsonify({
+                "mensagem": "Dados extraídos para revisão",
+                "dados_extraidos": dados_json
+            }), 200
+
+        # If confirming with reviewed data
+        if confirmar:
+            # Get reviewed data from form
+            dados_revisados_json = request.form.get('dados_revisados')
+            if not dados_revisados_json:
+                return jsonify({"erro": "Dados revisados não fornecidos"}), 400
+
+            import json
+            try:
+                dados_json = json.loads(dados_revisados_json)
+            except json.JSONDecodeError:
+                return jsonify({"erro": "Formato de dados revisados inválido"}), 400
+
+            # Use the file that was originally uploaded (we need to re-read it)
+            # In a real implementation, we might store the file temporarily
+            # For now, we'll re-process it, but ideally we'd avoid double processing
+            file.seek(0)  # Reset file pointer
+            file_bytes = file.read()
+
+        else:
+            # Normal flow - extract and save immediately
+            dados_json = analisar_recibo_com_gemini(file_bytes, mime_type)
+
         # 1. Faz Upload pro Drive se o ID da pasta existir
         link_drive = "Sem Link"
         caminho_local_recibo = None
-        
+
         if folder_id:
             segundos = int(time.time())
             nome_seguro = f"{segundos}_{secure_filename(file.filename)}"
             link_drive = upload_file_to_drive(file_bytes, nome_seguro, folder_id, mime_type)
-            
+
             # Salva arquivo local Oculto para futura montagem do Fechamento do Mês
             caminho_local_recibo = os.path.join(TEMP_DIR, nome_seguro)
             with open(caminho_local_recibo, 'wb') as flocal:
@@ -125,12 +161,15 @@ def receber_recibo():
         else:
             logger.warning(f"Não fiz upload pro Drive pois a variável {folder_env_key} está vazia ou falta no .env")
 
-        # 2. IA Trabalhando na Foto
-        dados_json = analisar_recibo_com_gemini(file_bytes, mime_type)
-        
+        # 2. IA Trabalhando na Foto (already done above if not confirming)
+        if not confirmar:
+            # dados_json already extracted above
+            pass
+        # If confirming, dados_json comes from the reviewed data
+
         # Inserção Local no SQLite
         inserir_despesa(origem="RECIBO", tipo=categoria, data=dados_json.get("data", ""), categoria=dados_json.get("categoria", ""), descricao=dados_json.get("descricao", ""), valor=dados_json.get("valor_total", 0), caminho_arquivo=caminho_local_recibo)
-        
+
         # 3. Empurra pra Planilha respeitando as regras do JSON do processar_recibos.md
         if sheet_id:
             linha = [
@@ -146,7 +185,7 @@ def receber_recibo():
             append_to_sheet(sheet_id, "Página1", [linha])
         else:
             logger.warning(f"Não registrou na Planilha pois a variável {sheet_env_key} está vazia ou falta no .env")
-        
+
         return jsonify({
             "mensagem": "Recibo interpretado mágico de I.A",
             "dados_extraidos": dados_json,
