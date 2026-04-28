@@ -47,12 +47,12 @@ def buscar_despesas(tipo):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT id, origem, data, categoria, descricao, valor, caminho_arquivo 
+        SELECT id, origem, data, categoria, descricao, valor, caminho_arquivo
         FROM despesas WHERE tipo = ?
     ''', (tipo.upper(),))
     rows = cursor.fetchall()
     conn.close()
-    
+
     resultados = []
     for r in rows:
         resultados.append({
@@ -64,6 +64,89 @@ def buscar_despesas(tipo):
             'valor': r[5],
             'caminho_arquivo': r[6]
         })
+    return resultados
+
+def buscar_despesas_agrupadas(tipo, groupby):
+    """
+    Busca despesas agrupadas por categoria e/ou descrição com totais, quantidades e médias
+
+    Args:
+        tipo (str): Tipo de despesa (PESSOAL, CAJU, VIAGEM)
+        groupby (str): Campos para agrupar ('categoria', 'descricao', or 'categoria,descricao')
+
+    Returns:
+        list: Lista de dicionários com os dados agrupados
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Determine which columns to select and group by based on groupby parameter
+    if groupby == 'categoria':
+        select_clause = '''
+            categoria,
+            SUM(valor) as total,
+            COUNT(*) as quantidade,
+            AVG(valor) as media
+        '''
+        group_clause = 'categoria'
+        order_clause = 'total DESC'
+    elif groupby == 'descricao':
+        select_clause = '''
+            descricao,
+            SUM(valor) as total,
+            COUNT(*) as quantidade,
+            AVG(valor) as media
+        '''
+        group_clause = 'descricao'
+        order_clause = 'total DESC'
+    else:  # categoria,descricao (default)
+        select_clause = '''
+            categoria,
+            descricao,
+            SUM(valor) as total,
+            COUNT(*) as quantidade,
+            AVG(valor) as media
+        '''
+        group_clause = 'categoria, descricao'
+        order_clause = 'total DESC'
+
+    query = f'''
+        SELECT {select_clause}
+        FROM despesas
+        WHERE tipo = ?
+        GROUP BY {group_clause}
+        ORDER BY {order_clause}
+    '''
+
+    cursor.execute(query, (tipo.upper(),))
+    rows = cursor.fetchall()
+    conn.close()
+
+    resultados = []
+    for r in rows:
+        if groupby == 'categoria':
+            resultados.append({
+                'categoria': r[0],
+                'total': r[1],
+                'quantidade': r[2],
+                'media': r[3]
+            })
+        elif groupby == 'descricao':
+            resultados.append({
+                'descricao': r[0],
+                'total': r[1],
+                'quantidade': r[2],
+                'media': r[3]
+            })
+        else:  # categoria,descricao
+            resultados.append({
+                'categoria': r[0],
+                'descricao': r[1],
+                'total': r[2],
+                'quantidade': r[3],
+                'media': r[4]
+            })
+
     return resultados
 
 def limpar_despesas(tipo):

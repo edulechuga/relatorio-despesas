@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Fechamento do Mês</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
@@ -23,33 +23,54 @@
 
         <div class="dashboard-grid">
             <!-- PESSOAL -->
-            <div class="dashboard-card">
-                <h3>PESSOAL</h3>
-                <div class="value value-pessoal">R$ <span id="valor-Pessoal">0.00</span></div>
-                <div class="desc"><i data-lucide="inbox" style="width:12px; height:12px; display:inline-block; margin-right:4px;"></i><span id="qtd-Pessoal">0</span> itens em espera</div>
-                <button class="submit-btn" style="padding: 12px; font-size: 0.875rem;" onclick="gerarRelatorio('PESSOAL')">
-                    <span>FECHAR PESSOAL</span>
-                </button>
+            <div class="dashboard-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h3>PESSOAL</h3>
+                    <div class="value value-pessoal">R$ <span id="valor-Pessoal">0.00</span></div>
+                    <div class="desc"><i data-lucide="inbox" style="width:12px; height:12px; display:inline-block; margin-right:4px;"></i><span id="qtd-Pessoal">0</span> itens em espera</div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+                    <button class="btn-primary" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 0.875rem;" onclick="gerarRelatorio('PESSOAL')">
+                        <i data-lucide="check-circle" style="width: 16px;"></i> FECHAR PESSOAL
+                    </button>
+                    <button class="btn-secondary" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 0.875rem; padding: 12px;" onclick="gerarRelatorioComBreakdown('PESSOAL')">
+                        <i data-lucide="layout-dashboard" style="width: 16px;"></i> PARCIAL PESSOAL
+                    </button>
+                </div>
             </div>
 
             <!-- CAJU -->
-            <div class="dashboard-card">
-                <h3>CAJU</h3>
-                <div class="value value-caju">R$ <span id="valor-Caju">0.00</span></div>
-                <div class="desc"><i data-lucide="inbox" style="width:12px; height:12px; display:inline-block; margin-right:4px;"></i><span id="qtd-Caju">0</span> itens em espera</div>
-                <button class="submit-btn" style="padding: 12px; font-size: 0.875rem;" onclick="gerarRelatorio('CAJU')">
-                    <span>FECHAR CAJU</span>
-                </button>
+            <div class="dashboard-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h3>CAJU</h3>
+                    <div class="value value-caju">R$ <span id="valor-Caju">0.00</span></div>
+                    <div class="desc"><i data-lucide="inbox" style="width:12px; height:12px; display:inline-block; margin-right:4px;"></i><span id="qtd-Caju">0</span> itens em espera</div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+                    <button class="btn-primary" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 0.875rem;" onclick="gerarRelatorio('CAJU')">
+                        <i data-lucide="check-circle" style="width: 16px;"></i> FECHAR CAJU
+                    </button>
+                    <button class="btn-secondary" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 0.875rem; padding: 12px;" onclick="gerarRelatorioComBreakdown('CAJU')">
+                        <i data-lucide="layout-dashboard" style="width: 16px;"></i> PARCIAL CAJU
+                    </button>
+                </div>
             </div>
 
             <!-- VIAGEM -->
-            <div class="dashboard-card">
-                <h3>VIAGEM</h3>
-                <div class="value value-viagem">R$ <span id="valor-Viagem">0.00</span></div>
-                <div class="desc"><i data-lucide="inbox" style="width:12px; height:12px; display:inline-block; margin-right:4px;"></i><span id="qtd-Viagem">0</span> itens em espera</div>
-                <button class="submit-btn" style="padding: 12px; font-size: 0.875rem;" onclick="gerarRelatorio('VIAGEM')">
-                    <span>FECHAR VIAGEM</span>
-                </button>
+            <div class="dashboard-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h3>VIAGEM</h3>
+                    <div class="value value-viagem">R$ <span id="valor-Viagem">0.00</span></div>
+                    <div class="desc"><i data-lucide="inbox" style="width:12px; height:12px; display:inline-block; margin-right:4px;"></i><span id="qtd-Viagem">0</span> itens em espera</div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+                    <button class="btn-primary" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 0.875rem;" onclick="gerarRelatorio('VIAGEM')">
+                        <i data-lucide="check-circle" style="width: 16px;"></i> FECHAR VIAGEM
+                    </button>
+                    <button class="btn-secondary" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 0.875rem; padding: 12px;" onclick="gerarRelatorioComBreakdown('VIAGEM')">
+                        <i data-lucide="layout-dashboard" style="width: 16px;"></i> PARCIAL VIAGEM
+                    </button>
+                </div>
             </div>
             
         </div>
@@ -68,9 +89,68 @@
                 <a id="link-pdf" href="#" class="submit-btn" style="margin-top: 0; background: #EF4444; width: auto; padding: 12px 24px;"><i data-lucide="file-text" style="width:18px;"></i> PDF de Notas</a>
             </div>
         </div>
-    </div>
+    </div> <!-- Close glass-container -->
 
-    <script src="app_relatorio.js"></script>
+    <!-- Breakdown Modal -->
+    <div id="breakdownModal" class="modal hidden">
+        <div class="modal-content glass-panel" style="width: 95vw; max-width: 1400px;">
+                <div class="modal-header" style="border-bottom-color: rgba(255,255,255,0.05);">
+                    <h2 id="modalTitle" style="color: var(--primary);"><i data-lucide="layout-dashboard" style="width: 24px; height: 24px;"></i> Breakdown de Gastos</h2>
+                    <button id="breakdownCloseModal" class="modal-close">&times;</button>
+                </div>
+                <div id="breakdownLoading" style="text-align: center; padding: 40px; display: none;">
+                    <div class="loader" style="display:inline-block; margin-bottom: 16px; border-top-color: var(--primary); width: 32px; height: 32px;"></div>
+                    <p style="color: var(--text-muted); font-size: 0.875rem;">Carregando analytics...</p>
+                </div>
+                <div id="breakdownContent" style="display: none;">
+                    
+                    <!-- Grouping Toggle -->
+                    <div class="segmented-control two-items glass-panel" style="margin-bottom: 16px; max-width: 400px;">
+                        <input type="radio" id="group-resumida" name="breakdownGroup" value="resumida" checked>
+                        <label for="group-resumida">Resumida</label>
+                        
+                        <input type="radio" id="group-completa" name="breakdownGroup" value="completa">
+                        <label for="group-completa">Completa</label>
+                        
+                        <div class="slider"></div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="breakdownTable" class="breakdown-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px; text-align: center;"></th>
+                                    <th>Categoria</th>
+                                    <th>Descrição</th>
+                                    <th>Total (R$)</th>
+                                    <th>% do Total</th>
+                                    <th>Quantidade</th>
+                                    <th>Média (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows will be inserted here -->
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="3" style="text-align: right; color: var(--text-muted); font-weight: 500; text-transform: uppercase; font-size: 0.75rem;">TOTAL GERAL</th>
+                                    <th id="breakdownTotalValor"></th>
+                                    <th id="breakdownTotalPerc">100.00%</th>
+                                    <th id="breakdownTotalQuantidade"></th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: flex-end; gap: 16px;">
+                        <button type="button" id="breakdownExportBtn" class="btn-secondary" style="display: flex; align-items: center; gap: 8px;"><i data-lucide="download" style="width: 16px;"></i> CSV</button>
+                        <button type="button" id="breakdownGenerateReportBtn" class="btn-primary" style="display: flex; align-items: center; gap: 8px;"><i data-lucide="file-check-2" style="width: 16px;"></i> Fechar Mês</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <script src="app_relatorio.js?v=4"></script>
     <script>
         lucide.createIcons();
     </script>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Scanner de Recibos IA</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
@@ -73,68 +73,76 @@
 
         <!-- Modal de Revisão dos Dados -->
         <div id="reviewModal" class="modal hidden">
-            <div class="modal-content glass-panel">
+            <div class="modal-content glass-panel" style="max-width: 600px;">
                 <div class="modal-header">
                     <h2>📋 Revisar Dados Extraídos</h2>
                     <button id="closeModal" class="modal-close">&times;</button>
                 </div>
                 <form id="reviewForm">
-                    <div class="form-group">
-                        <label for="reviewData">Data</label>
-                        <input type="text" id="reviewData" name="data" required>
+                    <div class="review-grid">
+                        <div class="form-group">
+                            <label for="reviewData">Data</label>
+                            <input type="text" id="reviewData" name="data" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reviewValor">Valor Total (R$)</label>
+                            <input type="text" id="reviewValor" name="valor_total" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reviewCategoria">Categoria</label>
+                            <select id="reviewCategoria" name="categoria" required>
+                                <option value="">Selecione a categoria</option>
+                                <option value="Alimentação">Alimentação</option>
+                                <option value="Hospedagem">Hospedagem</option>
+                                <option value="Transporte">Transporte</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="reviewDescricao">Descrição</label>
+                            <select id="reviewDescricao" name="descricao" required>
+                                <option value="">Selecione a descrição</option>
+                                <option value="Alimentação">Alimentação</option>
+                                <option value="KM">KM</option>
+                                <option value="Gasolina">Gasolina</option>
+                                <option value="Estacionamento">Estacionamento</option>
+                                <option value="Pedágio">Pedágio</option>
+                                <option value="Uber">Uber</option>
+                                <option value="Brindes">Brindes</option>
+                                <option value="Compras Escritório">Compras Escritório</option>
+                                <option value="Evento">Evento</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="reviewItens">Itens Comprados</label>
+                            <input type="text" id="reviewItens" name="itens_comprados" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reviewRazao">Razão Social</label>
+                            <input type="text" id="reviewRazao" name="razao_social" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reviewLocal">Local</label>
+                            <input type="text" id="reviewLocal" name="local" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="reviewCategoria">Categoria</label>
-                        <select id="reviewCategoria" name="categoria" required>
-                            <option value="">Selecione a categoria</option>
-                            <option value="Alimentação">Alimentação</option>
-                            <option value="Hospedagem">Hospedagem</option>
-                            <option value="Transporte">Transporte</option>
-                            <option value="Outros">Outros</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="reviewDescricao">Descrição</label>
-                        <select id="reviewDescricao" name="descricao" required>
-                            <option value="">Selecione a descrição</option>
-                            <option value="Alimentação">Alimentação</option>
-                            <option value="KM">KM</option>
-                            <option value="Gasolina">Gasolina</option>
-                            <option value="Estacionamento">Estacionamento</option>
-                            <option value="Pedágio">Pedágio</option>
-                            <option value="Uber">Uber</option>
-                            <option value="Brindes">Brindes</option>
-                            <option value="Compras Escritório">Compras Escritório</option>
-                            <option value="Evento">Evento</option>
-                            <option value="Outros">Outros</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="reviewValor">Valor Total (R$)</label>
-                        <input type="text" id="reviewValor" name="valor_total" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="reviewItens">Itens Comprados</label>
-                        <input type="text" id="reviewItens" name="itens_comprados" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="reviewRazao">Razão Social</label>
-                        <input type="text" id="reviewRazao" name="razao_social" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="reviewLocal">Local</label>
-                        <input type="text" id="reviewLocal" name="local" required>
-                    </div>
-                    <div class="modal-actions">
+                    <div class="modal-actions" style="margin-top: 8px;">
                         <button type="button" id="cancelReview" class="btn-secondary">Cancelar</button>
                         <button type="submit" class="btn-primary" id="confirmReview">Confirmar e Salvar</button>
                     </div>
                 </form>
             </div>
         </div>
+
+        <!-- Full-screen Loading Overlay for Saving -->
+        <div id="savingOverlay" class="modal hidden" style="background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(10px); z-index: 9999; flex-direction: column; align-items: center; justify-content: center;">
+            <div class="loader" style="display: block; width: 60px; height: 60px; border-width: 4px; border-top-color: var(--primary); margin-bottom: 24px;"></div>
+            <h2 style="color: white; font-weight: 600; font-size: 1.5rem; text-align: center; margin: 0;">Salvando Despesa...</h2>
+        </div>
     </div>
 
-    <script src="app_recibos.js"></script>
+    <script src="app_recibos.js?v=3"></script>
     <script>
         lucide.createIcons();
         

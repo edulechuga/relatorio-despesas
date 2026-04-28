@@ -229,10 +229,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showLoading(isLoading) {
+        const overlay = document.getElementById('savingOverlay');
         if (isLoading) {
             submitBtn.classList.add('loading');
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.style.display = 'flex';
+            }
         } else {
             submitBtn.classList.remove('loading');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.style.display = 'none';
+            }
         }
     }
 

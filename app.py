@@ -217,12 +217,12 @@ def gerar_relatorio_fechamento():
     from execution.processar_relatorio import consolidar_geracao
     data = request.get_json()
     tipo = data.get('tipo', 'PESSOAL').upper()
-    
+
     try:
         caminho_excel, caminho_pdf = consolidar_geracao(tipo)
         if not caminho_excel:
             return jsonify({"erro": "Nenhum dado pendente para gerar!"}), 400
-            
+
         return jsonify({
             "mensagem": "Sucesso",
             "excel_url": f"/api/download/{os.path.basename(caminho_excel)}",
@@ -230,6 +230,28 @@ def gerar_relatorio_fechamento():
         }), 200
     except Exception as e:
         logger.exception("Erro ao fechar relatorio")
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/api/relatorio/breakdown', methods=['GET'])
+def get_breakdown():
+    from execution.db_relatorio import buscar_despesas_agrupadas
+    tipo = request.args.get('tipo', 'PESSOAL').upper()
+    groupby = request.args.get('groupby', 'categoria,descricao')
+
+    # Validate tipo
+    if tipo not in ['PESSOAL', 'CAJU', 'VIAGEM']:
+        return jsonify({"erro": "Tipo inválido"}), 400
+
+    # Validate groupby
+    allowed_groupby = ['categoria', 'descricao', 'categoria,descricao']
+    if groupby not in allowed_groupby:
+        return jsonify({"erro": "Agrupamento inválido"}), 400
+
+    try:
+        dados = buscar_despesas_agrupadas(tipo, groupby)
+        return jsonify({"dados": dados}), 200
+    except Exception as e:
+        logger.exception("Erro ao buscar breakdown")
         return jsonify({"erro": str(e)}), 500
 
 @app.route('/api/download/<filename>', methods=['GET'])

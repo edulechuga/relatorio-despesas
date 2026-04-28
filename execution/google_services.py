@@ -61,22 +61,29 @@ def append_to_sheet(sheet_id: str, range_name: str, values: list):
         
         # Estratégia Inteligente: Pega o nome real da primeira aba no Google Sheets
         # Isso evita o erro "Unable to parse range" se a aba se chamar "Sheet1", "KM" ou "Planilha1"
-        try:
-            sheet_metadata = service.spreadsheets().get(spreadsheetId=sheet_id).execute()
-            sheets = sheet_metadata.get('sheets', [])
-            if sheets:
-                real_sheet_name = sheets[0].get("properties", {}).get("title", "Página1")
-                # Se o nome real for encontrado, usamos ele (ex: 'KM') no lugar do fixo.
-                range_name = real_sheet_name
-        except Exception as meta_error:
-            logger.warning(f"Não conseguiu ler os metadados da planilha: {str(meta_error)}")
+        real_sheet_name = range_name
+        import time
+        for attempt in range(3):
+            try:
+                sheet_metadata = service.spreadsheets().get(spreadsheetId=sheet_id).execute()
+                sheets = sheet_metadata.get('sheets', [])
+                if sheets:
+                    real_sheet_name = sheets[0].get("properties", {}).get("title", "Página1")
+                    range_name = real_sheet_name
+                break
+            except Exception as meta_error:
+                if "503" in str(meta_error) and attempt < 2:
+                    time.sleep(1)
+                    continue
+                logger.warning(f"Não conseguiu ler os metadados da planilha: {str(meta_error)}")
+                break
 
         body = {
             'values': values
         }
         
-        # Evita conflitos de aspas no nome da aba se ela tiver espaços
-        safe_range = f"'{range_name}'!A:D"
+        # Evita conflitos de aspas no nome da aba se ela tiver espaços, e usa A:Z para suportar mais de 4 colunas
+        safe_range = f"'{range_name}'!A:Z"
         
         result = service.spreadsheets().values().append(
             spreadsheetId=sheet_id,
