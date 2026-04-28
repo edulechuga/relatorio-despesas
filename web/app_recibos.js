@@ -69,8 +69,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Prepare data from review form
+        let inputData = document.getElementById('reviewData').value;
+        if (inputData && inputData.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const parts = inputData.split('-');
+            // Convert to MM/DD/YYYY as requested by the AI directive
+            inputData = `${parts[1]}/${parts[2]}/${parts[0]}`;
+        }
+        
         const reviewData = {
-            data: document.getElementById('reviewData').value,
+            data: inputData,
             categoria: document.getElementById('reviewCategoria').value,
             descricao: document.getElementById('reviewDescricao').value,
             valor_total: document.getElementById('reviewValor').value,
@@ -183,7 +190,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentFile = file;
 
                 // Populate review form with extracted data
-                document.getElementById('reviewData').value = extractedData.data || '';
+                let dateValue = extractedData.data || '';
+                if (typeof dateValue === 'string') {
+                    dateValue = dateValue.trim();
+                    
+                    const matchIso = dateValue.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+                    const matchUs = dateValue.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+                    const matchUsShort = dateValue.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{2})/);
+                    
+                    if (matchIso) {
+                        dateValue = `${matchIso[1]}-${matchIso[2]}-${matchIso[3]}`;
+                    } else if (matchUs) {
+                        // AI returns MM/DD/YYYY, input type="date" expects YYYY-MM-DD
+                        dateValue = `${matchUs[3]}-${matchUs[1]}-${matchUs[2]}`;
+                    } else if (matchUsShort) {
+                        dateValue = `20${matchUsShort[3]}-${matchUsShort[1]}-${matchUsShort[2]}`;
+                    }
+                }
+                document.getElementById('reviewData').value = dateValue;
                 document.getElementById('reviewCategoria').value = extractedData.categoria || '';
                 document.getElementById('reviewDescricao').value = extractedData.descricao || '';
                 document.getElementById('reviewValor').value = extractedData.valor_total || '';

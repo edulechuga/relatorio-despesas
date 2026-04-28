@@ -134,32 +134,47 @@ async function mostrarBreakdown(tipo, forceViewMode = null) {
             });
 
             if (viewMode === 'completa') {
+                const thDataCol = document.getElementById('th-data-col');
+                const tfColspan = document.getElementById('tf-colspan');
+                if(thDataCol) thDataCol.style.display = '';
+                if(tfColspan) tfColspan.setAttribute('colspan', '4');
+
                 data.dados.forEach(item => {
                     const row = tableBody.insertRow();
 
                     const cellToggle = row.insertCell(0); // empty
-                    const cellCategoria = row.insertCell(1);
+                    const cellData = row.insertCell(1);
+                    cellData.textContent = item.data || '-';
+                    cellData.style.color = 'var(--text-muted)';
+                    cellData.style.fontSize = '0.8rem';
+
+                    const cellCategoria = row.insertCell(2);
                     cellCategoria.textContent = item.categoria || 'Sem Categoria';
 
-                    const cellDescricao = row.insertCell(2);
+                    const cellDescricao = row.insertCell(3);
                     cellDescricao.textContent = item.descricao || 'Sem Descrição';
 
-                    const cellTotal = row.insertCell(3);
+                    const cellTotal = row.insertCell(4);
                     const totalItem = parseFloat(item.total || 0);
                     cellTotal.textContent = totalItem.toFixed(2);
 
-                    const cellPerc = row.insertCell(4);
+                    const cellPerc = row.insertCell(5);
                     const perc = totalGeralValor > 0 ? (totalItem / totalGeralValor * 100) : 0;
                     cellPerc.textContent = perc.toFixed(2) + '%';
 
-                    const cellQuantidade = row.insertCell(5);
+                    const cellQuantidade = row.insertCell(6);
                     cellQuantidade.textContent = item.quantidade;
 
-                    const cellMedia = row.insertCell(6);
+                    const cellMedia = row.insertCell(7);
                     cellMedia.textContent = parseFloat(item.media || 0).toFixed(2);
                 });
             } else {
-                // 'resumida' view
+                // Modo Parcial
+                const thDataCol = document.getElementById('th-data-col');
+                const tfColspan = document.getElementById('tf-colspan');
+                if(thDataCol) thDataCol.style.display = 'none';
+                if(tfColspan) tfColspan.setAttribute('colspan', '3');
+
                 const categoriasMap = {};
                 data.dados.forEach(item => {
                     const cat = item.categoria || 'Sem Categoria';
@@ -179,7 +194,7 @@ async function mostrarBreakdown(tipo, forceViewMode = null) {
                     row.style.cursor = 'pointer';
 
                     const cellToggle = row.insertCell(0);
-                    cellToggle.innerHTML = `<button class="toggle-btn" style="background:none; border:none; color:var(--text-main); cursor:pointer; padding:4px;"><i data-lucide="minus-square" style="width:18px; height:18px;"></i></button>`;
+                    cellToggle.innerHTML = `<button class="toggle-btn" style="background:none; border:none; color:var(--text-main); cursor:pointer; padding:4px;"><i data-lucide="plus-square" style="width:18px; height:18px;"></i></button>`;
                     cellToggle.style.textAlign = 'center';
 
                     const cellCategoria = row.insertCell(1);
@@ -205,8 +220,20 @@ async function mostrarBreakdown(tipo, forceViewMode = null) {
 
                     // Child rows
                     const childRows = [];
+                    // Aggregate items by descricao
+                    const descMap = {};
                     catData.items.forEach(item => {
+                        const desc = item.descricao || 'Sem Descrição';
+                        if (!descMap[desc]) {
+                            descMap[desc] = { descricao: desc, total: 0, quantidade: 0, media: 0 };
+                        }
+                        descMap[desc].total += parseFloat(item.total || 0);
+                        descMap[desc].quantidade += parseInt(item.quantidade || 0);
+                    });
+
+                    Object.values(descMap).forEach(descItem => {
                         const childRow = tableBody.insertRow();
+                        childRow.style.display = 'none'; // Hidden by default
                         
                         childRow.insertCell(0); // empty
 
@@ -214,28 +241,27 @@ async function mostrarBreakdown(tipo, forceViewMode = null) {
                         cCategoria.textContent = '';
                         
                         const cDescricao = childRow.insertCell(2);
-                        cDescricao.textContent = item.descricao || 'Sem Descrição';
+                        cDescricao.textContent = descItem.descricao;
                         cDescricao.style.paddingLeft = '16px';
                         
                         const cTotal = childRow.insertCell(3);
-                        const itemTotal = parseFloat(item.total || 0);
-                        cTotal.textContent = itemTotal.toFixed(2);
+                        cTotal.textContent = descItem.total.toFixed(2);
                         
                         const cPerc = childRow.insertCell(4);
-                        const itemPerc = totalGeralValor > 0 ? (itemTotal / totalGeralValor * 100) : 0;
+                        const itemPerc = totalGeralValor > 0 ? (descItem.total / totalGeralValor * 100) : 0;
                         cPerc.textContent = itemPerc.toFixed(2) + '%';
                         
                         const cQuantidade = childRow.insertCell(5);
-                        cQuantidade.textContent = item.quantidade;
+                        cQuantidade.textContent = descItem.quantidade;
                         
                         const cMedia = childRow.insertCell(6);
-                        cMedia.textContent = parseFloat(item.media || 0).toFixed(2);
+                        cMedia.textContent = (descItem.quantidade > 0 ? descItem.total / descItem.quantidade : 0).toFixed(2);
                         
                         childRows.push(childRow);
                     });
 
                     // Toggle logic
-                    let expanded = true;
+                    let expanded = false;
                     row.addEventListener('click', () => {
                         expanded = !expanded;
                         cellToggle.innerHTML = `<button class="toggle-btn" style="background:none; border:none; color:var(--text-main); cursor:pointer; padding:4px;"><i data-lucide="${expanded ? 'minus-square' : 'plus-square'}" style="width:18px; height:18px;"></i></button>`;
@@ -258,7 +284,7 @@ async function mostrarBreakdown(tipo, forceViewMode = null) {
         } else {
             loadingDiv.style.display = 'none';
             contentDiv.style.display = 'block';
-            tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Erro ao carregar dados: ${data.erro || 'Erro desconhecido'}</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Erro ao carregar dados: ${data.erro || 'Erro desconhecido'}</td></tr>`;
             totalValor.textContent = '0.00';
             totalQuantidade.textContent = '0';
         }
@@ -266,7 +292,7 @@ async function mostrarBreakdown(tipo, forceViewMode = null) {
     } catch (e) {
         loadingDiv.style.display = 'none';
         contentDiv.style.display = 'block';
-        tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Erro de conexão: ${e.message}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Erro de conexão: ${e.message}</td></tr>`;
         totalValor.textContent = '0.00';
         totalQuantidade.textContent = '0';
         console.error("Erro ao buscar breakdown:", e);
@@ -310,17 +336,27 @@ function setupBreakdownModal() {
         const exportGroupby = 'categoria,descricao';
 
         try {
-            const response = await fetch(`${targetApi}/breakdown?tipo=${currentTipo}&groupby=${exportGroupby}&export=true`);
+            const response = await fetch(`${targetApi}/breakdown?tipo=${currentTipo}&groupby=${exportGroupby}`);
             if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
+                const result = await response.json();
+                let csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "Data,Categoria,Descricao,Total,Quantidade,Media\n";
+                result.dados.forEach(item => {
+                    const dt = item.data || '';
+                    const cat = item.categoria || 'Sem Categoria';
+                    const desc = item.descricao || 'Sem Descrição';
+                    const tot = parseFloat(item.total || 0).toFixed(2);
+                    const qtd = item.quantidade || 0;
+                    const med = parseFloat(item.media || 0).toFixed(2);
+                    csvContent += `"${dt}","${cat}","${desc}",${tot},${qtd},${med}\r\n`;
+                });
+                const encodedUri = encodeURI(csvContent);
                 const a = document.createElement('a');
                 a.style.display = 'none';
-                a.href = url;
+                a.href = encodedUri;
                 a.download = `breakdown_${currentTipo}_${new Date().toISOString().slice(0,10)}.csv`;
                 document.body.appendChild(a);
                 a.click();
-                window.URL.revokeObjectURL(url);
             } else {
                 const error = await response.json();
                 alert(`Erro ao exportar: ${error.erro}`);
@@ -342,5 +378,7 @@ function setupBreakdownModal() {
 // Since the HTML uses inline onclick, we need to modify those or create a wrapper
 // Let's create a wrapper function that will be used by the HTML
 window.gerarRelatorioComBreakdown = function(tipo) {
-    mostrarBreakdown(tipo);
+    const groupResumida = document.getElementById('group-resumida');
+    if (groupResumida) groupResumida.checked = true;
+    mostrarBreakdown(tipo, 'parcial');
 };

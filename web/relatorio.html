@@ -106,8 +106,8 @@
                     
                     <!-- Grouping Toggle -->
                     <div class="segmented-control two-items glass-panel" style="margin-bottom: 16px; max-width: 400px;">
-                        <input type="radio" id="group-resumida" name="breakdownGroup" value="resumida" checked>
-                        <label for="group-resumida">Resumida</label>
+                        <input type="radio" id="group-resumida" name="breakdownGroup" value="parcial" checked>
+                        <label for="group-resumida">Parcial</label>
                         
                         <input type="radio" id="group-completa" name="breakdownGroup" value="completa">
                         <label for="group-completa">Completa</label>
@@ -120,6 +120,7 @@
                             <thead>
                                 <tr>
                                     <th style="width: 40px; text-align: center;"></th>
+                                    <th id="th-data-col" style="display: none;">Data</th>
                                     <th>Categoria</th>
                                     <th>Descrição</th>
                                     <th>Total (R$)</th>
@@ -133,7 +134,7 @@
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <th colspan="3" style="text-align: right; color: var(--text-muted); font-weight: 500; text-transform: uppercase; font-size: 0.75rem;">TOTAL GERAL</th>
+                                    <th id="tf-colspan" colspan="3" style="text-align: right; color: var(--text-muted); font-weight: 500; text-transform: uppercase; font-size: 0.75rem;">TOTAL GERAL</th>
                                     <th id="breakdownTotalValor"></th>
                                     <th id="breakdownTotalPerc">100.00%</th>
                                     <th id="breakdownTotalQuantidade"></th>

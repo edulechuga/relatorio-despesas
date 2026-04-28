@@ -101,14 +101,15 @@ def buscar_despesas_agrupadas(tipo, groupby):
         order_clause = 'total DESC'
     else:  # categoria,descricao (default)
         select_clause = '''
+            data,
             categoria,
             descricao,
             SUM(valor) as total,
             COUNT(*) as quantidade,
             AVG(valor) as media
         '''
-        group_clause = 'categoria, descricao'
-        order_clause = 'total DESC'
+        group_clause = 'data, categoria, descricao'
+        order_clause = 'data DESC, total DESC'
 
     query = f'''
         SELECT {select_clause}
@@ -140,11 +141,12 @@ def buscar_despesas_agrupadas(tipo, groupby):
             })
         else:  # categoria,descricao
             resultados.append({
-                'categoria': r[0],
-                'descricao': r[1],
-                'total': r[2],
-                'quantidade': r[3],
-                'media': r[4]
+                'data': r[0],
+                'categoria': r[1],
+                'descricao': r[2],
+                'total': r[3],
+                'quantidade': r[4],
+                'media': r[5]
             })
 
     return resultados
