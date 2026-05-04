@@ -69,13 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Prepare data from review form
-        let inputData = document.getElementById('reviewData').value;
-        if (inputData && inputData.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            const parts = inputData.split('-');
-            // Convert to MM/DD/YYYY as requested by the AI directive
-            inputData = `${parts[1]}/${parts[2]}/${parts[0]}`;
-        }
-        
+        const inputData = document.getElementById('reviewData').value;
+
         const reviewData = {
             data: inputData,
             categoria: document.getElementById('reviewCategoria').value,

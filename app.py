@@ -5,6 +5,15 @@ from execution.logger import get_logger
 from execution.processar_km import processar_km_payload
 from execution.google_services import append_to_sheet
 
+def validate_env_var(var_name, var_value=None):
+    """Validate that an environment variable is set and not empty."""
+    if var_value is None:
+        var_value = os.getenv(var_name)
+    if not var_value:
+        logger.error(f"Environment variable {var_name} is not set or is empty")
+        raise ValueError(f"Required environment variable {var_name} is not configured")
+    return var_value
+
 # Cria diretórios necessários
 os.makedirs('_recibos_pendentes', exist_ok=True)
 os.makedirs('relatorios_gerados', exist_ok=True)
@@ -42,17 +51,17 @@ def registrar_km():
         
         
         # Puxa o ID do arquivo .env
-        sheet_id = os.getenv("SHEET_ID_KM")
-        
-        # Se for inglês, mude de "Página1" para "Sheet1" aqui ou no .env se preferir
-        if sheet_id:
+        try:
+            sheet_id = validate_env_var("SHEET_ID_KM")
+
+            # Se for inglês, mude de "Página1" para "Sheet1" aqui ou no .env se preferir
             append_to_sheet(sheet_id, "Página1", [linha])
-        else:
-            logger.warning("Google Sheets não acionado pois variável SHEET_ID_KM não está no .env.")
-        
+        except ValueError as e:
+            logger.warning(f"Google Sheets KM não acionado: {str(e)}")
+
         # Salvar também na planilha Despesas Pessoal
-        sheet_id_pessoal = os.getenv("SHEET_ID_PESSOAL")
-        if sheet_id_pessoal:
+        try:
+            sheet_id_pessoal = validate_env_var("SHEET_ID_PESSOAL")
             linha_pessoal = [
                 data.get('data'),  # DATA
                 "Transporte",  # CATEGORIA
@@ -61,8 +70,8 @@ def registrar_km():
                 "KM - " + data.get('clientes')  # ITENS
             ]
             append_to_sheet(sheet_id_pessoal, "Página1", [linha_pessoal])
-        else:
-            logger.warning("Planilha Pessoal não acionada pois SHEET_ID_PESSOAL não está no .env.")
+        except ValueError as e:
+            logger.warning(f"Planilha Pessoal não acionada: {str(e)}")
         
         return jsonify({
             "mensagem": "Cálculo efetuado e salvo no Google Sheets com sucesso!",
@@ -135,11 +144,14 @@ def receber_recibo():
             except json.JSONDecodeError:
                 return jsonify({"erro": "Formato de dados revisados inválido"}), 400
 
-            # Use the file that was originally uploaded (we need to re-read it)
-            # In a real implementation, we might store the file temporarily
-            # For now, we'll re-process it, but ideally we'd avoid double processing
-            file.seek(0)  # Reset file pointer
-            file_bytes = file.read()
+            # Validate required fields in the reviewed data
+            required_fields = ["data", "categoria", "descricao", "valor_total", "itens_comprados", "razao_social", "local"]
+            missing_fields = [field for field in required_fields if not dados_json.get(field)]
+            if missing_fields:
+                return jsonify({"erro": f"Campos obrigatórios ausentes: {', '.join(missing_fields)}"}), 400
+
+            # When confirming, we use the reviewed data directly and skip Gemini processing
+            # The file_bytes and mime_type were already captured at the beginning of the function
 
         else:
             # Normal flow - extract and save immediately
@@ -149,29 +161,28 @@ def receber_recibo():
         link_drive = "Sem Link"
         caminho_local_recibo = None
 
-        if folder_id:
+        try:
+            validated_folder_id = validate_env_var(folder_env_key)
             segundos = int(time.time())
             nome_seguro = f"{segundos}_{secure_filename(file.filename)}"
-            link_drive = upload_file_to_drive(file_bytes, nome_seguro, folder_id, mime_type)
+            link_drive = upload_file_to_drive(file_bytes, nome_seguro, validated_folder_id, mime_type)
 
             # Salva arquivo local Oculto para futura montagem do Fechamento do Mês
             caminho_local_recibo = os.path.join(TEMP_DIR, nome_seguro)
             with open(caminho_local_recibo, 'wb') as flocal:
                 flocal.write(file_bytes)
-        else:
-            logger.warning(f"Não fiz upload pro Drive pois a variável {folder_env_key} está vazia ou falta no .env")
+        except ValueError as e:
+            logger.warning(f"Não fiz upload pro Drive: {str(e)}")
 
         # 2. IA Trabalhando na Foto (already done above if not confirming)
-        if not confirmar:
-            # dados_json already extracted above
-            pass
-        # If confirming, dados_json comes from the reviewed data
+        # If confirming, dados_json comes from the reviewed data (processed earlier)
 
         # Inserção Local no SQLite
         inserir_despesa(origem="RECIBO", tipo=categoria, data=dados_json.get("data", ""), categoria=dados_json.get("categoria", ""), descricao=dados_json.get("descricao", ""), valor=dados_json.get("valor_total", 0), caminho_arquivo=caminho_local_recibo)
 
         # 3. Empurra pra Planilha respeitando as regras do JSON do processar_recibos.md
-        if sheet_id:
+        try:
+            validated_sheet_id = validate_env_var(sheet_env_key)
             linha = [
                 dados_json.get("data", ""),
                 dados_json.get("categoria", categoria),
@@ -182,9 +193,9 @@ def receber_recibo():
                 dados_json.get("local", ""),
                 link_drive
             ]
-            append_to_sheet(sheet_id, "Página1", [linha])
-        else:
-            logger.warning(f"Não registrou na Planilha pois a variável {sheet_env_key} está vazia ou falta no .env")
+            append_to_sheet(validated_sheet_id, "Página1", [linha])
+        except ValueError as e:
+            logger.warning(f"Não registrou na Planilha: {str(e)}")
 
         return jsonify({
             "mensagem": "Recibo interpretado mágico de I.A",
