@@ -120,13 +120,13 @@
                             <thead>
                                 <tr>
                                     <th style="width: 40px; text-align: center;"></th>
-                                    <th id="th-data-col" style="display: none;">Data</th>
-                                    <th>Categoria</th>
-                                    <th>Descrição</th>
-                                    <th>Total (R$)</th>
-                                    <th>% do Total</th>
-                                    <th>Quantidade</th>
-                                    <th>Média (R$)</th>
+                                    <th id="th-data-col" style="display: none; cursor: pointer;" onclick="handleSort('data')">Data <span class="sort-icon" id="sort-icon-data">▼</span></th>
+                                    <th style="cursor: pointer;" onclick="handleSort('categoria')">Categoria <span class="sort-icon" id="sort-icon-categoria"></span></th>
+                                    <th style="cursor: pointer;" onclick="handleSort('descricao')">Descrição <span class="sort-icon" id="sort-icon-descricao"></span></th>
+                                    <th style="cursor: pointer;" onclick="handleSort('total')">Total (R$) <span class="sort-icon" id="sort-icon-total"></span></th>
+                                    <th style="cursor: pointer;" onclick="handleSort('perc')">% do Total <span class="sort-icon" id="sort-icon-perc"></span></th>
+                                    <th style="cursor: pointer;" onclick="handleSort('quantidade')">Quantidade <span class="sort-icon" id="sort-icon-quantidade"></span></th>
+                                    <th style="cursor: pointer;" onclick="handleSort('media')">Média (R$) <span class="sort-icon" id="sort-icon-media"></span></th>
                                 </tr>
                             </thead>
                             <tbody>
